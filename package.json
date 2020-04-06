@@ -6,9 +6,16 @@
     "@testing-library/jest-dom": "^4.2.4",
     "@testing-library/react": "^9.3.2",
     "@testing-library/user-event": "^7.1.2",
+    "bio-pv": "^1.8.1",
+    "jukes-cantor": "^1.0.1",
+    "lodash": "^4.17.15",
+    "neighbor-joining": "^1.0.4",
+    "newick-js": "^1.1.1",
+    "phylogenetic-likelihood": "^1.0.5",
     "react": "^16.13.1",
     "react-dom": "^16.13.1",
-    "react-scripts": "3.4.1"
+    "react-scripts": "3.4.1",
+    "stockholm-js": "^1.0.6"
   },
   "scripts": {
     "start": "react-scripts start",
