@@ -10,58 +10,25 @@ import RapidNeighborJoining from 'neighbor-joining';
 import PhylogeneticLikelihood from 'phylogenetic-likelihood';
 
 class App extends Component {
-
-  get defaultColorScheme() { return 'maeditor' }
-  get defaultConfig() {
-    return {
-      treeAlignHeight: 400,
-      genericRowHeight: 24,
-      nameFontSize: 12,
-      containerHeight: '100%',
-      containerWidth: '100%',
-      treeWidth: 200,
-      nameDivWidth: 200,
-      branchStrokeStyle: 'black',
-      nodeHandleRadius: 4,
-      nodeHandleClickRadius: 40,
-      nodeHandleFillStyle: 'white',
-      collapsedNodeHandleFillStyle: 'black',
-      rowConnectorDash: [2,2],
-      structureConfig: { width: 300, height: 300 },
-      handler: {},
-      colorScheme: this.defaultColorScheme
-    } }
-
-  get initState() {
-    return {
-      collapsed: {},   // true if an internal node has been collapsed by the user
-      forceDisplayNode: {},   // force a node to be displayed even if it's flagged as collapsed. Used by animation code
-      nodeScale: {},  // height scaling factor for tree nodes / alignment rows. From 0 to 1 (undefined implies 1)
-      columnScale: {},  // height scaling factor for alignment columns. From 0 to 1 (undefined implies 1)
-      scrollTop: 0,
-      scrollLeft: 0,
-      disableTreeEvents: false,
-      structure: { openStructures: [] }
-    } }
   
   constructor(props) {
     super(props);
 
     // config
-    this.config = extend (this.defaultConfig, props.config || {})
-    const { treeAlignHeight, genericRowHeight, nameFontSize, containerHeight, containerWidth, treeWidth, nameDivWidth, branchStrokeStyle, nodeHandleRadius, nodeHandleClickRadius, nodeHandleFillStyle, collapsedNodeHandleFillStyle, rowConnectorDash, structureConfig, handler } = this.config
+    const config = extend (this.defaultConfig, props.config || {})
+    const { genericRowHeight, nameFontSize, treeWidth, branchStrokeStyle, nodeHandleRadius, nodeHandleClickRadius, nodeHandleFillStyle, collapsedNodeHandleFillStyle, rowConnectorDash } = config
 
     // data
-    this.data = this.getData (props.data, this.config)
-    this.treeIndex = this.buildTreeIndex (this.data)
-    this.alignIndex = this.buildAlignmentIndex (this.data)
+    const data = this.getData (props.data, config)
+    const treeIndex = this.buildTreeIndex (data)
+    const alignIndex = this.buildAlignmentIndex (data)
 
     // tree configuration
     const treeStrokeWidth = 1
     const nodeHandleStrokeStyle = branchStrokeStyle
     const availableTreeWidth = treeWidth - nodeHandleRadius - 2*treeStrokeWidth
     const scrollbarHeight = 20  // hack, could be platform-dependent, a bit fragile...
-    this.computedTreeConfig = { treeWidth, availableTreeWidth, genericRowHeight, branchStrokeStyle, nodeHandleStrokeStyle, nodeHandleRadius, nodeHandleClickRadius, nodeHandleFillStyle, collapsedNodeHandleFillStyle, rowConnectorDash, treeStrokeWidth, scrollbarHeight }
+    const computedTreeConfig = { treeWidth, availableTreeWidth, genericRowHeight, branchStrokeStyle, nodeHandleStrokeStyle, nodeHandleRadius, nodeHandleClickRadius, nodeHandleFillStyle, collapsedNodeHandleFillStyle, rowConnectorDash, treeStrokeWidth, scrollbarHeight }
 
     // font configuration
     const charFontName = 'Menlo,monospace'
@@ -69,11 +36,15 @@ class App extends Component {
     const nameFontColor = 'black'
     const charFont = genericRowHeight + 'px ' + charFontName
     const nameFont = nameFontSize + 'px ' + nameFontName
-    const color = this.config.color || colorSchemes[this.config.colorScheme]
-    this.computedFontConfig = { charFont, charFontName, color, nameFont, nameFontName, nameFontSize, nameFontColor, genericRowHeight }
+    const color = config.color || colorSchemes[config.colorScheme]
+    const computedFontConfig = { charFont, charFontName, color, nameFont, nameFontName, nameFontSize, nameFontColor, genericRowHeight }
     
     // state
-    this.setState = extend (this.initState, props.state || {})
+    this.state = { data,
+                   treeIndex,
+                   alignIndex,
+                   computedTreeConfig,
+                   computedFontConfig }
   }
 
   // method to get data & build tree if necessary
@@ -146,7 +117,7 @@ class App extends Component {
       const model = PhylogeneticLikelihood.models.makeGappedModel ({ model: PhylogeneticLikelihood.models[PhylogeneticLikelihood.defaultModel],
                                                                      deletionRate,
                                                                      gapChar })
-      const { nodeProfile, treeIndex, columns }
+      const { nodeProfile }
             = PhylogeneticLikelihood.getNodePostProfiles ({ branchList: data.branches,
                                                             nodeSeq: data.rowData,
                                                             postProbThreshold: .01,
@@ -156,7 +127,7 @@ class App extends Component {
         rowData[node] = nodeProfile[node].map ((charProb) => {
           if (charProb[gapChar] >= .5)
             return gapChar
-          const chars = Object.keys(charProb).filter ((c) => c != gapChar).sort ((a, b) => charProb[a] - charProb[b])
+          const chars = Object.keys(charProb).filter ((c) => c !== gapChar).sort ((a, b) => charProb[a] - charProb[b])
           const norm = chars.reduce ((psum, c) => psum + charProb[c], 0)
           const probs = chars.map ((c) => charProb[c] / norm)
           const entropy = probs.reduce ((s, p) => s - p * Math.log(p), 0) / Math.log(2)
@@ -166,6 +137,27 @@ class App extends Component {
     }
     return data
   }
+
+  get defaultColorScheme() { return 'maeditor' }
+  get defaultConfig() {
+    return {
+      treeAlignHeight: 400,
+      genericRowHeight: 24,
+      nameFontSize: 12,
+      containerHeight: '100%',
+      containerWidth: '100%',
+      treeWidth: 200,
+      nameDivWidth: 200,
+      branchStrokeStyle: 'black',
+      nodeHandleRadius: 4,
+      nodeHandleClickRadius: 40,
+      nodeHandleFillStyle: 'white',
+      collapsedNodeHandleFillStyle: 'black',
+      rowConnectorDash: [2,2],
+      structureConfig: { width: 300, height: 300 },
+      handler: {},
+      colorScheme: this.defaultColorScheme
+    } }
 
   // method to parse FASTA (simple enough to build in here)
   parseFasta (fasta) {
@@ -185,13 +177,13 @@ class App extends Component {
     const { branches } = data
     let { root } = data, rootSpecified = typeof(root) !== 'undefined'
     const roots = this.getRoots (branches)
-    if (roots.length == 0 && (branches.length > 0 || !rootSpecified))
+    if (roots.length === 0 && (branches.length > 0 || !rootSpecified))
       throw new Error ("No root nodes")
     if (rootSpecified) {
       if (roots.indexOf(root) < 0)
         throw new Error ("Specified root node is not a root")
     } else {
-      if (roots.length != 1)
+      if (roots.length !== 1)
         throw new Error ("Multiple possible root nodes, and no root specified")
       root = roots[0]
     }
@@ -219,7 +211,7 @@ class App extends Component {
       maxDistFromRoot = Math.max (maxDistFromRoot, distFromRoot[node])
       const kids = children[node]
       let clade = []
-      if (kids.length == 2) {
+      if (kids.length === 2) {
         clade = clade.concat (addSubtree (kids[0], node))
         addNode (node)
         clade = clade.concat (addSubtree (kids[1], node))
@@ -250,7 +242,7 @@ class App extends Component {
     let rowDataAsArray = {}, alignColToSeqPos = {}, seqPosToAlignCol = {}, isChar = {}, columns
     Object.keys(rowData).forEach ((node) => {
       const row = rowData[node]
-      if (typeof(columns) !== 'undefined' && columns != row.length)
+      if (typeof(columns) !== 'undefined' && columns !== row.length)
         console.error ("Inconsistent row lengths")
       columns = row.length
       let pos2col = [], pos = 0
@@ -271,11 +263,42 @@ class App extends Component {
   }
 
   // helper to recognize gap characters
-  isGapChar (c) { return typeof(c) === 'string' ? (c == '-' || c == '.') : (!c || Object.keys(c).length === 0) }
+  isGapChar (c) { return typeof(c) === 'string' ? (c === '-' || c === '.') : (!c || Object.keys(c).length === 0) }
 
   render() {
     return (
         <div className="App">
+        <MSA {...this.state} />
+        </div>
+    );
+  }
+}
+
+class MSA extends Component {
+  constructor(props) {
+    super(props);
+
+    const view = extend (this.initialView,
+                         props.view || {})
+
+    this.state = extend (props, { view });
+  }
+
+  get initialView() {
+    return {
+      collapsed: {},   // true if an internal node has been collapsed by the user
+      forceDisplayNode: {},   // force a node to be displayed even if it's flagged as collapsed. Used by animation code
+      nodeScale: {},  // height scaling factor for tree nodes / alignment rows. From 0 to 1 (undefined implies 1)
+      columnScale: {},  // height scaling factor for alignment columns. From 0 to 1 (undefined implies 1)
+      scrollTop: 0,
+      scrollLeft: 0,
+      disableTreeEvents: false,
+      structure: { openStructures: [] }
+    } }
+
+  render() {
+    return (
+        <div className="MSA">
         <header className="App-header">
         <p>
         Edit <code>src/App.js</code> and save to reload.
@@ -290,7 +313,7 @@ class App extends Component {
       </a>
         </header>
         </div>
-    );
+    )
   }
 }
 
