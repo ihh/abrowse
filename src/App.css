@@ -1,38 +1,61 @@
 .App {
-  text-align: center;
 }
 
-.App-logo {
-  height: 40vmin;
-  pointer-events: none;
+.MSA {
+    display: flex;
+    flex-direction: column;
 }
 
-@media (prefers-reduced-motion: no-preference) {
-  .App-logo {
-    animation: App-logo-spin infinite 20s linear;
-  }
+.MSA-tree-alignment {
+    display: flex;
+    flex-direction: row;
+    overflow-y: auto;
+    border-style: solid;
+    border-color: black;
+    border-width: 1px;
 }
 
-.App-header {
-  background-color: #282c34;
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  font-size: calc(10px + 2vmin);
-  color: white;
+.MSA-tree {
 }
 
-.App-link {
-  color: #61dafb;
+.MSA-alignment {
+    display: flex;
+    flex-direction: row;
+    overflow: hidden;
 }
 
-@keyframes App-logo-spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
+.MSA-alignment-names {
+    margin-left: 2px;
+    margin-right: 2px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    flex-shrink: 0;
+    white-space: nowrap;
 }
+
+.MSA-alignment-rows {
+    position: relative;
+    overflow-x: scroll;
+    overflow-y: hidden;
+    -moz-user-select: none;
+    -webkit-user-select: none;
+    -ms-user-select: none;
+    padding: 1px;
+    cursor: move;
+}
+
+.MSA-alignment-rows-back {
+    z-index: 1;
+}
+
+.MSA-alignment-canvas {
+    position: absolute;
+    overflow: hidden;
+    pointer-events: none;
+}
+
+.MSA-structures {
+    display: flex;
+    flex-direction: row;
+}
+
