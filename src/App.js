@@ -40,7 +40,8 @@ class App extends Component {
     const computedFontConfig = { charFont, charFontName, color, nameFont, nameFontName, nameFontSize, nameFontColor, genericRowHeight }
     
     // state
-    this.state = { data,
+    this.state = { config,
+                   data,
                    treeIndex,
                    alignIndex,
                    computedTreeConfig,
@@ -268,7 +269,10 @@ class App extends Component {
   render() {
     return (
         <div className="App">
-        <MSA {...this.state} />
+        <MSA
+      isGapChar={this.isGapChar.bind(this)}
+      {...this.state}
+        />
         </div>
     );
   }
@@ -296,6 +300,97 @@ class MSA extends Component {
       structure: { openStructures: [] }
     } }
 
+  // get tree collapsed/open state
+  getComputedState() {
+    const { treeIndex, alignIndex, view } = this.state
+    const { collapsed, forceDisplayNode } = view
+    const { rowDataAsArray } = alignIndex
+    let ancestorCollapsed = {}, nodeVisible = {}
+    const setCollapsedState = (node, parent) => {
+      ancestorCollapsed[node] = ancestorCollapsed[parent] || collapsed[parent]
+      const kids = treeIndex.children[node]
+      if (kids)
+        kids.forEach ((child) => setCollapsedState (child, node))
+    }
+    setCollapsedState (treeIndex.root)
+    treeIndex.nodes.forEach ((node) => nodeVisible[node] = (!ancestorCollapsed[node]
+                                                              && (treeIndex.children[node].length === 0
+                                                                  || forceDisplayNode[node])))
+    let columnVisible = new Array(alignIndex.columns).fill(false)
+    treeIndex.nodes.filter ((node) => nodeVisible[node]).forEach ((node) => {
+      if (rowDataAsArray[node])
+        rowDataAsArray[node].forEach ((c, col) => { if (!this.isGapChar(c)) columnVisible[col] = true })
+    })
+    return { ancestorCollapsed, nodeVisible, columnVisible }
+  }
+  
+  // layout tree
+  layoutTree() {
+    const { computedState, computedTreeConfig, treeIndex, config } = this.state
+    const { nodeVisible, nodeScale } = computedState
+    const { genericRowHeight, nodeHandleRadius, treeStrokeWidth, availableTreeWidth, scrollbarHeight } = computedTreeConfig
+    let nx = {}, ny = {}, computedRowScale = [], nodeHeight = {}, rowHeight = [], treeHeight = 0
+    const rowY = treeIndex.nodes.map ((node) => {
+      const scale = typeof(nodeScale[node]) !== 'undefined' ? nodeScale[node] : 1
+      const rh = scale * (nodeVisible[node] ? genericRowHeight : 0)
+      const y = treeHeight
+      nx[node] = nodeHandleRadius + treeStrokeWidth + availableTreeWidth * treeIndex.distFromRoot[node] / treeIndex.maxDistFromRoot
+      ny[node] = y + rh / 2
+      nodeHeight[node] = rh
+      computedRowScale.push (scale)
+      rowHeight.push (rh)
+      treeHeight += rh
+      return y
+    })
+    treeHeight += scrollbarHeight
+    return { nx, ny, computedRowScale, nodeHeight, rowHeight, rowY, treeHeight, computedState }
+  }
+
+  // get metrics and other info about alignment font/chars, and do layout
+  layoutAlignment (opts) {
+    const { alignIndex, computedState, computedFontConfig } = opts
+    const { genericRowHeight, charFont } = computedFontConfig
+    const alignChars = alignIndex.chars
+    let charWidth = 0, charMetrics = {}
+    alignChars.forEach ((c) => {
+      let measureCanvas = this.create ('canvas', null, { width: genericRowHeight, height: genericRowHeight })
+      let measureContext = measureCanvas.getContext('2d')
+      measureContext.font = charFont
+      charMetrics[c] = measureContext.measureText (c)
+      charWidth = Math.max (charWidth, Math.ceil (charMetrics[c].width))
+    })
+    const charHeight = genericRowHeight
+
+    let nextColX = 0, colX = [], colWidth = [], computedColScale = []
+    for (let col = 0; col < alignIndex.columns; ++col) {
+      colX.push (nextColX)
+      if (computedState.columnVisible[col]) {
+        let scale = computedState.columnScale[col]
+        if (typeof(scale) === 'undefined')
+          scale = 1
+        computedColScale.push (scale)
+        const width = scale * charWidth
+        colWidth.push (width)
+        nextColX += width
+      } else {
+        computedColScale.push (0)
+        colWidth.push (0)
+      }
+    }
+
+    return { charMetrics, charWidth, charHeight, colX, colWidth, computedColScale, alignWidth: nextColX }
+  }
+
+  // helper to create DOM element for measurement purposes
+  create (type, styles, attrs) {
+    const element = document.createElement (type)
+    if (attrs)
+      Object.keys(attrs).filter ((attr) => typeof(attrs[attr]) !== 'undefined').forEach ((attr) => element.setAttribute (attr, attrs[attr]))
+    if (styles)
+      element.style = styles
+    return element
+  }
+  
   render() {
     return (
         <div className="MSA">
