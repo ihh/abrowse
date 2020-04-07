@@ -1,5 +1,5 @@
 import React, { Component } from 'react';
-import extend from 'lodash';
+import { extend } from 'lodash';
 import colorSchemes from './colorSchemes'
 import './App.css';
 
@@ -13,9 +13,9 @@ class App extends Component {
   
   constructor(props) {
     super(props);
-
+    
     // config
-    const config = extend (this.defaultConfig, props.config || {})
+    const config = extend (this.defaultConfig(), props.config || {})
     const { genericRowHeight, nameFontSize, treeWidth, branchStrokeStyle, nodeHandleRadius, nodeHandleClickRadius, nodeHandleFillStyle, collapsedNodeHandleFillStyle, rowConnectorDash } = config
 
     // data
@@ -139,8 +139,8 @@ class App extends Component {
     return data
   }
 
-  get defaultColorScheme() { return 'maeditor' }
-  get defaultConfig() {
+  defaultColorScheme() { return 'maeditor' }
+  defaultConfig() {
     return {
       treeAlignHeight: 400,
       genericRowHeight: 24,
@@ -157,7 +157,7 @@ class App extends Component {
       rowConnectorDash: [2,2],
       structureConfig: { width: 300, height: 300 },
       handler: {},
-      colorScheme: this.defaultColorScheme
+      colorScheme: this.defaultColorScheme()
     } }
 
   // method to parse FASTA (simple enough to build in here)
@@ -271,7 +271,12 @@ class App extends Component {
         <div className="App">
         <MSA
       isGapChar={this.isGapChar.bind(this)}
-      {...this.state}
+      config={this.state.config}
+      data={this.state.data}
+      treeIndex={this.state.treeIndex}
+      alignIndex={this.state.alignIndex}
+      computedTreeConfig={this.state.computedTreeConfig}
+      computedFontConfig={this.state.computedFontConfig}
         />
         </div>
     );
@@ -282,13 +287,13 @@ class MSA extends Component {
   constructor(props) {
     super(props);
 
-    const view = extend (this.initialView,
+    const view = extend (this.initialView(),
                          props.view || {})
 
-    this.state = extend (props, { view });
+    this.state = extend ({}, props, { view });
   }
 
-  get initialView() {
+  initialView() {
     return {
       collapsed: {},   // true if an internal node has been collapsed by the user
       forceDisplayNode: {},   // force a node to be displayed even if it's flagged as collapsed. Used by animation code
@@ -301,7 +306,7 @@ class MSA extends Component {
     } }
 
   // get tree collapsed/open state
-  getComputedState() {
+  getComputedView() {
     const { treeIndex, alignIndex, view } = this.state
     const { collapsed, forceDisplayNode } = view
     const { rowDataAsArray } = alignIndex
@@ -319,15 +324,16 @@ class MSA extends Component {
     let columnVisible = new Array(alignIndex.columns).fill(false)
     treeIndex.nodes.filter ((node) => nodeVisible[node]).forEach ((node) => {
       if (rowDataAsArray[node])
-        rowDataAsArray[node].forEach ((c, col) => { if (!this.isGapChar(c)) columnVisible[col] = true })
+        rowDataAsArray[node].forEach ((c, col) => { if (!this.state.isGapChar(c)) columnVisible[col] = true })
     })
-    return { ancestorCollapsed, nodeVisible, columnVisible }
+    return extend ({ ancestorCollapsed, nodeVisible, columnVisible },
+                   view)
   }
   
   // layout tree
-  layoutTree() {
-    const { computedState, computedTreeConfig, treeIndex, config } = this.state
-    const { nodeVisible, nodeScale } = computedState
+  layoutTree (computedView) {
+    const { computedTreeConfig, treeIndex } = this.state
+    const { nodeVisible, nodeScale } = computedView
     const { genericRowHeight, nodeHandleRadius, treeStrokeWidth, availableTreeWidth, scrollbarHeight } = computedTreeConfig
     let nx = {}, ny = {}, computedRowScale = [], nodeHeight = {}, rowHeight = [], treeHeight = 0
     const rowY = treeIndex.nodes.map ((node) => {
@@ -343,12 +349,12 @@ class MSA extends Component {
       return y
     })
     treeHeight += scrollbarHeight
-    return { nx, ny, computedRowScale, nodeHeight, rowHeight, rowY, treeHeight, computedState }
+    return { nx, ny, computedRowScale, nodeHeight, rowHeight, rowY, treeHeight, computedView }
   }
 
   // get metrics and other info about alignment font/chars, and do layout
-  layoutAlignment (opts) {
-    const { alignIndex, computedState, computedFontConfig } = opts
+  layoutAlignment (computedView) {
+    const { alignIndex, computedFontConfig } = this.state
     const { genericRowHeight, charFont } = computedFontConfig
     const alignChars = alignIndex.chars
     let charWidth = 0, charMetrics = {}
@@ -364,8 +370,8 @@ class MSA extends Component {
     let nextColX = 0, colX = [], colWidth = [], computedColScale = []
     for (let col = 0; col < alignIndex.columns; ++col) {
       colX.push (nextColX)
-      if (computedState.columnVisible[col]) {
-        let scale = computedState.columnScale[col]
+      if (computedView.columnVisible[col]) {
+        let scale = computedView.columnScale[col]
         if (typeof(scale) === 'undefined')
           scale = 1
         computedColScale.push (scale)
@@ -392,6 +398,9 @@ class MSA extends Component {
   }
   
   render() {
+    const computedView = this.getComputedView()
+    const treeLayout = this.layoutTree (computedView)
+    const alignLayout = this.layoutAlignment (computedView)
     return (
         <div className="MSA">
         <header className="App-header">
