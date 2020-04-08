@@ -1,15 +1,13 @@
 import React, { Component } from 'react';
-import { extend } from 'lodash';
 
 class MSAAlignNames extends Component {
   
   constructor(props) {
     super(props);
-    this.state = extend ({}, props)
   }
 
   render() {
-    const { computedFontConfig, treeIndex, config, computedView, treeLayout } = this.state
+    const { computedFontConfig, treeIndex, config, computedView, treeLayout } = this.props
     const { nameDivWidth } = config
     const { nameFontName, nameFontSize } = computedFontConfig
 
@@ -18,8 +16,9 @@ class MSAAlignNames extends Component {
     return (<div className="MSA-alignment-names"
             style={{ fontFamily: nameFontName,
                      fontSize: nameFontSize + 'px',
-                     maxWidth: nameDivWidth,
-                     top: -this.state.scrollTop }}>
+                     maxWidth: nameDivWidth }}>
+            <div className="MSA-alignment-names-content"
+            style={{ top: -this.props.scrollTop }}>
             { treeIndex.nodes
               .filter ((node) => computedView.nodeVisible[node])
               .map ((node, row) => {
@@ -31,6 +30,7 @@ class MSAAlignNames extends Component {
                         </span>
                         </div>)
               }) }
+            </div>
             </div>)
   }
 

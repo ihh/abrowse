@@ -1,30 +1,28 @@
 import React, { Component } from 'react';
-import { extend } from 'lodash';
 
 class MSATree extends Component {
   
   constructor(props) {
     super(props);
-    this.state = extend ({}, props)
     this.canvasRef = React.createRef()
   }
 
   render() {
-    const { treeWidth } = this.state.computedTreeConfig
-    const { treeHeight } = this.state.treeLayout
+    const { treeWidth } = this.props.computedTreeConfig
+    const { treeHeight } = this.props.treeLayout
     return (<div className="MSA-tree"
-            style={{ minWidth: treeWidth,
-                     top: -this.state.scrollTop }}>
-            <canvas
+            style={{ minWidth: treeWidth }}>
+            <canvas className="MSA-tree-canvas"
             ref={this.canvasRef}
             width={treeWidth}
             height={treeHeight}
+            style={{ top: -this.props.scrollTop }}
             />
             </div>)
   }
 
   componentDidMount() {
-    const { treeIndex, treeLayout, computedView, computedTreeConfig } = this.state
+    const { treeIndex, treeLayout, computedView, computedTreeConfig } = this.props
     const { collapsed, ancestorCollapsed, forceDisplayNode, nodeScale } = computedView
     const { treeWidth, branchStrokeStyle, treeStrokeWidth, rowConnectorDash, nodeHandleRadius, nodeHandleFillStyle, collapsedNodeHandleFillStyle } = computedTreeConfig
     const { nx, ny } = treeLayout

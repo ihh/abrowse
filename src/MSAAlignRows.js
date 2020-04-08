@@ -1,5 +1,4 @@
 import React, { Component } from 'react';
-import { extend } from 'lodash';
 
 import MSAAlignCanvas from './MSAAlignCanvas';
 
@@ -7,16 +6,13 @@ class MSAAlignRows extends Component {
   
   constructor(props) {
     super(props);
-    this.state = extend ({}, props)
     this.rowsDivRef = React.createRef()
   }
 
   render() {
-    const { treeHeight } = this.state.treeLayout
-    const { alignWidth } = this.state.alignLayout
+    const { treeHeight } = this.props.treeLayout
+    const { alignWidth } = this.props.alignLayout
 
-    console.warn(this.state)
-    
     return (<div className="MSA-alignment-rows"
             ref={this.rowsDivRef}
             onScroll={this.onScroll.bind(this)}>
@@ -31,8 +27,8 @@ class MSAAlignRows extends Component {
   componentDidMount() { this.setScrollPos() }
   
   setScrollPos() {
-    this.rowsDivRef.current.scrollLeft = this.state.scrollLeft
-    this.rowsDivRef.current.scrollTop = this.state.scrollTop
+    this.rowsDivRef.current.scrollLeft = this.props.scrollLeft
+    this.rowsDivRef.current.scrollTop = this.props.scrollTop
   }
 
   onScroll() {

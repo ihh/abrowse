@@ -16,19 +16,25 @@
 }
 
 .MSA-tree {
-    position: relative;
     overflow-x: scroll;
     overflow-y: hidden;
 }
 
-.MSA-alignment-names {
+.MSA-tree-canvas {
     position: relative;
+}
+
+.MSA-alignment-names {
     margin-left: 2px;
     margin-right: 2px;
     overflow-x: scroll;
     overflow-y: hidden;
     flex-shrink: 0;
     white-space: nowrap;
+}
+
+.MSA-alignment-names-content {
+    position: relative;
 }
 
 .MSA-alignment-name {
