@@ -55,13 +55,6 @@ class MSAAlignCanvas extends Component {
   }
 
   renderVisibleRegion() {
-    if (this.lastRenderTime) {
-      const currentTime = Date.now()
-      const renderDelay = 10
-      if (currentTime - this.lastRenderTime < renderDelay)
-        return
-      this.lastRenderTime = currentTime
-    }
     const alignCanvas = this.canvasRef.current
     const ctx = alignCanvas.getContext('2d')
     const { top, left, bottom, right } = this.getDimensions()
