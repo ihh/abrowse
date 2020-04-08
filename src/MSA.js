@@ -273,7 +273,7 @@ class MSA extends Component {
 
     drawAnimationFrame (collapseAnimationFrames)
   }
-  
+
   handleAlignmentScroll (alignScrollLeft, scrollTop) {
     if (alignScrollLeft !== this.state.alignScrollLeft
         || scrollTop !== this.state.scrollTop)
