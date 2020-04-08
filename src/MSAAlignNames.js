@@ -1,10 +1,6 @@
 import React, { Component } from 'react';
 
 class MSAAlignNames extends Component {
-  
-  constructor(props) {
-    super(props);
-  }
 
   render() {
     const { computedFontConfig, treeIndex, config, computedView, treeLayout } = this.props
@@ -24,7 +20,7 @@ class MSAAlignNames extends Component {
               .map ((node, row) => {
                 const style = { height: nodeHeight[node] + 'px' }
                 const scale = this.props.view.nodeScale[node]
-                if (typeof(scale) !== 'undefined' && scale != 1) {
+                if (typeof(scale) !== 'undefined' && scale !== 1) {
                   style.transform = 'scale(1,' + scale +')'
                   style.opacity = scale
                 }

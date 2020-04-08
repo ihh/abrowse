@@ -212,9 +212,8 @@ class MSA extends Component {
   }
 
   handleNodeClick (node) {
-    const { data, config, treeIndex, alignIndex, computedView } = this.props
-    const { rowData } = data
-    const { collapsed, nodeScale, columnScale, forceDisplayNode, nodeVisible, columnVisible } = this.getComputedView()
+    const { treeIndex, alignIndex } = this.props
+    const { collapsed, nodeScale, columnScale, forceDisplayNode, columnVisible } = this.getComputedView()
 
     const collapseAnimationFrames = 10
     const collapseAnimationDuration = 200
@@ -307,14 +306,14 @@ class MSA extends Component {
   handleMouseMove (evt) {
     if (this.alignMouseDown || this.mousedown)
       evt.preventDefault()
-    
-    let { alignScrollLeft, scrollTop } = this.state
+
+    let { alignScrollLeft, scrollTop } = this.state, updated = false
     if (this.alignMouseDown) {
       const dx = evt.pageX - this.lastX
       if (dx) {
-        this.lastX = evt.pageX
         alignScrollLeft = Math.max (0, Math.min (this.alignWidth - this.alignmentClientWidth, alignScrollLeft - dx))
         this.panning = true
+        updated = true
       }
     } else
       this.panning = false
@@ -322,16 +321,30 @@ class MSA extends Component {
     if (this.mouseDown) {
       const dy = evt.pageY - this.lastY
       if (dy) {
-        this.lastY = evt.pageY
         scrollTop = Math.max (0, Math.min (this.treeHeight - this.alignmentClientHeight, scrollTop - dy))
-        this.setState ({ scrollTop })
         this.scrolling = true
+        updated = true
       }
     } else
       this.scrolling = false
 
-    if (this.panning || this.scrolling)
-      this.setState ({ alignScrollLeft, scrollTop })
+    if (updated) {
+      const nextScrollUpdate = { pageX: evt.pageX,
+                                 pageY: evt.pageY,
+                                 alignScrollLeft,
+                                 scrollTop }
+      if (!this.nextScrollUpdate)
+        window.requestAnimationFrame (this.updateScroll.bind(this))
+      this.nextScrollUpdate = nextScrollUpdate
+    }
+  }
+
+  updateScroll() {
+    const { alignScrollLeft, scrollTop } = this.nextScrollUpdate
+    this.setState ({ alignScrollLeft, scrollTop })
+    this.lastX = this.nextScrollUpdate.pageX
+    this.lastY = this.nextScrollUpdate.pageY
+    delete this.nextScrollUpdate
   }
 }
 
