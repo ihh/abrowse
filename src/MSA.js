@@ -17,6 +17,8 @@ class MSA extends Component {
                            alignScrollLeft: 0 },
                          props,
                          { view });
+
+    this.rowsRef = React.createRef()
   }
 
   initialView() {
@@ -163,6 +165,7 @@ class MSA extends Component {
         />
       
         <MSAAlignRows
+      ref={this.rowsRef}
       data={this.state.data}
       view={this.state.view}
       config={this.state.config}
@@ -171,10 +174,10 @@ class MSA extends Component {
       alignIndex={this.state.alignIndex}
       treeLayout={treeLayout}
       alignLayout={alignLayout}
-      computedView={computedView}
       setClientSize={this.setAlignmentClientSize.bind(this)}
-      handleAlignmentScroll={this.handleAlignmentScroll.bind(this)}
-      handleMouseDown={this.handleRowsMouseDown.bind(this)}
+      handleScroll={this.handleAlignmentScroll.bind(this)}
+      handleMouseDown={this.handleAlignmentMouseDown.bind(this)}
+      handleClick={this.handleAlignmentClick.bind(this)}
       scrollLeft={this.state.alignScrollLeft}
       scrollTop={this.state.scrollTop}
         />
@@ -214,45 +217,56 @@ class MSA extends Component {
     this.lastY = evt.pageY
   }
 
-  handleRowsMouseDown (evt) {
-    this.rowsMouseDown = true
+  handleAlignmentMouseDown (evt) {
+    this.alignMouseDown = true
     this.lastX = evt.pageX
   }
 
+  handleAlignmentClick() {
+    this.panning = this.scrolling = false
+  }
+
   handleMouseLeave() {
-    this.rowsMouseDown = false
+    this.alignMouseDown = false
     this.mouseDown = false
     this.panning = this.scrolling = false
   }
 
   handleMouseUp() {
-    this.rowsMouseDown = false
+    this.alignMouseDown = false
     this.mouseDown = false
-  }
-
-  handleClick() {
-    this.panning = this.scrolling = false
   }
   
   handleMouseMove (evt) {
-    if (this.rowsMouseDown || this.mousedown)
+    if (this.alignMouseDown || this.mousedown)
       evt.preventDefault()
     
-    if (this.rowsMouseDown) {
+    if (this.alignMouseDown) {
       const dx = evt.pageX - this.lastX
-      this.lastX = evt.pageX
-      const alignScrollLeft = Math.max (0, Math.min (this.alignWidth - this.alignmentClientWidth, this.state.alignScrollLeft + dx))
-      this.setState ({ alignScrollLeft })
-      this.panning = true
-    }
+      if (dx) {
+        this.lastX = evt.pageX
+        const alignScrollLeft = Math.max (0, Math.min (this.alignWidth - this.alignmentClientWidth, this.state.alignScrollLeft - dx))
+        this.setState ({ alignScrollLeft })
+        this.panning = true
+      }
+    } else
+      this.panning = false
 
     if (this.mouseDown) {
       const dy = evt.pageY - this.lastY
-      this.lastY = evt.pageY
-      const scrollTop = Math.max (0, Math.min (this.treeHeight - this.alignmentClientHeight, this.state.scrollTop + dy))
-      this.setState ({ scrollTop })
-      this.scrolling = true
-    }
+      if (dy) {
+        this.lastY = evt.pageY
+        const scrollTop = Math.max (0, Math.min (this.treeHeight - this.alignmentClientHeight, this.state.scrollTop - dy))
+        this.setState ({ scrollTop })
+        this.scrolling = true
+      }
+    } else
+      this.scrolling = false
+
+    // attempt to scroll more smoothly by poking DOM directly. doesn't seem to be working
+    if (this.panning || this.scrolling)
+      this.rowsRef.current.setScrollPos ({ scrollLeft: this.state.alignScrollLeft,
+                                           scrollTop: this.state.scrollTop })
   }
 }
 

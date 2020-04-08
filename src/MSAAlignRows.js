@@ -18,12 +18,23 @@ class MSAAlignRows extends Component {
             ref={this.rowsDivRef}
             onScroll={this.onScroll.bind(this)}
             onMouseDown={this.onMouseDown.bind(this)}>
+
             <MSAAlignCanvas
             ref={this.alignCanvasRef}
+            data={this.props.data}
+            treeIndex={this.props.treeIndex}
+            alignIndex={this.props.alignIndex}
+            treeLayout={this.props.treeLayout}
+            alignLayout={this.props.alignLayout}
+            computedFontConfig={this.props.computedFontConfig}
+            scrollLeft={this.props.scrollLeft}
+            scrollTop={this.props.scrollTop}
             />
+            
             <div className="MSA-alignment-rows-back"
             style={{ width: alignWidth,
                      height: treeHeight }} />
+
             </div>)
   }
 
@@ -49,18 +60,24 @@ class MSAAlignRows extends Component {
                                                this.rowsDivRef.current.clientHeight)
   }
   
-  setScrollPos() {
-    this.rowsDivRef.current.scrollLeft = this.props.scrollLeft
-    this.rowsDivRef.current.scrollTop = this.props.scrollTop
-  }
-
-  onScroll (evt) {
-    this.props.handleAlignmentScroll (this.rowsDivRef.current.scrollLeft,
-                                      this.rowsDivRef.current.scrollTop)
+  setScrollPos (opts) {
+    opts = opts || this.props
+    this.rowsDivRef.current.scrollLeft = opts.scrollLeft
+    this.rowsDivRef.current.scrollTop = opts.scrollTop
+    this.rowsDivRef.current.className = "MSA-alignment-rows fuckme-"+opts.scrollLeft+'-'+opts.scrollTop
   }
 
   onMouseDown (evt) {
     this.props.handleMouseDown (evt)
+  }
+
+  onClick (evt) {
+    this.props.handleClick (evt)
+  }
+
+  onScroll (evt) {
+    this.props.handleScroll (this.rowsDivRef.current.scrollLeft,
+                             this.rowsDivRef.current.scrollTop)
   }
 }
 
