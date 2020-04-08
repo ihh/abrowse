@@ -30,7 +30,7 @@ class MSAAlignRows extends Component {
             scrollLeft={this.props.scrollLeft}
             scrollTop={this.props.scrollTop}
             />
-            
+
             <div className="MSA-alignment-rows-back"
             style={{ width: alignWidth,
                      height: treeHeight }} />
@@ -64,7 +64,6 @@ class MSAAlignRows extends Component {
     opts = opts || this.props
     this.rowsDivRef.current.scrollLeft = opts.scrollLeft
     this.rowsDivRef.current.scrollTop = opts.scrollTop
-    this.rowsDivRef.current.className = "MSA-alignment-rows fuckme-"+opts.scrollLeft+'-'+opts.scrollTop
   }
 
   onMouseDown (evt) {

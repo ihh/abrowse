@@ -1,5 +1,4 @@
 import React, { Component } from 'react';
-import { extend } from 'lodash';
 
 class MSAAlignCanvas extends Component {
   
@@ -23,12 +22,11 @@ class MSAAlignCanvas extends Component {
 
   getColor (c) {
     const { color } = this.props.computedFontConfig
-//    return 'rgb(' + 255*Math.random() + ',' + 255*Math.random() + ',' + 255*Math.random() + ')'
     return color[c.toUpperCase()] || color['default'] || 'black';
   }
 
   // offscreenRatio = the proportion of the rendered view that is invisible, on each side. Total rendered area = visible area * (1 + 2 * offscreenRatio)^2
-  getOffscreenRatio() { return .25 }
+  getOffscreenRatio() { return 1 }
 
   getDimensions() {
     const { scrollLeft, scrollTop } = this.props
@@ -57,16 +55,22 @@ class MSAAlignCanvas extends Component {
   }
 
   renderVisibleRegion() {
+    if (this.lastRenderTime) {
+      const currentTime = Date.now()
+      const renderDelay = 10
+      if (currentTime - this.lastRenderTime < renderDelay)
+        return
+      this.lastRenderTime = currentTime
+    }
     const alignCanvas = this.canvasRef.current
     const ctx = alignCanvas.getContext('2d')
     const { top, left, bottom, right } = this.getDimensions()
-    alignCanvas.className = 'MSA-alignment-canvas fuckme'+[top,left,bottom,right].join('-')
     const { computedFontConfig, treeLayout, alignLayout, treeIndex, alignIndex, data } = this.props
     const { rowData } = data
-    ctx.font = computedFontConfig.charFont
     ctx.setTransform (1, 0, 0, 1, 0, 0)
     ctx.globalAlpha = 1
     ctx.clearRect (0, 0, alignCanvas.width, alignCanvas.height)
+    ctx.font = computedFontConfig.charFont
     let firstRow, lastRow  // firstRow is first (partially) visible row, lastRow is last (partially) visible row
     for (let row = firstRow = 0; row < treeLayout.rowHeight.length && treeLayout.rowY[row] < bottom; ++row) {
       if (treeLayout.rowY[row] < top)

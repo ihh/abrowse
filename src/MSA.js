@@ -28,12 +28,14 @@ class MSA extends Component {
       nodeScale: {},  // height scaling factor for tree nodes / alignment rows. From 0 to 1 (undefined implies 1)
       columnScale: {},  // height scaling factor for alignment columns. From 0 to 1 (undefined implies 1)
       disableTreeEvents: false,
+      animating: false,
       structure: { openStructures: [] }
     } }
 
   // get tree collapsed/open state
-  getComputedView() {
-    const { treeIndex, alignIndex, view } = this.state
+  getComputedView (view) {
+    view = view || this.state.view
+    const { treeIndex, alignIndex } = this.state
     const { collapsed, forceDisplayNode } = view
     const { rowDataAsArray } = alignIndex
     let ancestorCollapsed = {}, nodeVisible = {}
@@ -149,6 +151,7 @@ class MSA extends Component {
       treeLayout={treeLayout}
       computedView={computedView}
       scrollTop={this.state.scrollTop}
+      handleNodeClick={this.handleNodeClick.bind(this)}
         />
 
         <MSAAlignNames
@@ -207,6 +210,70 @@ class MSA extends Component {
     this.alignmentClientWidth = w
     this.alignmentClientHeight = h
   }
+
+  handleNodeClick (node) {
+    const { data, config, treeIndex, alignIndex, computedView } = this.props
+    const { rowData } = data
+    const { collapsed, nodeScale, columnScale, forceDisplayNode, nodeVisible, columnVisible } = this.getComputedView()
+
+    const collapseAnimationFrames = 10
+    const collapseAnimationDuration = 200
+    const collapseAnimationMaxFrameSkip = 8
+
+    let framesLeft = collapseAnimationFrames
+
+    const wasCollapsed = collapsed[node], finalCollapsed = extend ({}, collapsed)
+    if (wasCollapsed) {
+      collapsed[node] = false  // when collapsed[node]=false (vs undefined), it's rendered by renderTree() as a collapsed node, but its descendants are still visible. A bit of a hack...
+      delete finalCollapsed[node]
+    } else
+      finalCollapsed[node] = true
+    const finalForceDisplayNode = extend ({}, forceDisplayNode)
+    finalForceDisplayNode[node] = !wasCollapsed
+    const finalComputedView = this.getComputedView ({ collapsed: finalCollapsed, forceDisplayNode: finalForceDisplayNode })
+    let newlyVisibleColumns = [], newlyHiddenColumns = []
+    for (let col = 0; col < alignIndex.columns; ++col)
+      if (finalComputedView.columnVisible[col] !== columnVisible[col])
+        (finalComputedView.columnVisible[node] ? newlyVisibleColumns : newlyHiddenColumns).push (col)
+
+    let lastFrameTime = Date.now()
+    const expectedTimeBetweenFrames = collapseAnimationDuration / collapseAnimationFrames
+    const drawAnimationFrame = () => {
+      let disableTreeEvents, animating, newCollapsed = collapsed
+      if (framesLeft) {
+        const scale = (wasCollapsed ? (collapseAnimationFrames + 1 - framesLeft) : framesLeft) / (collapseAnimationFrames + 1)
+        treeIndex.descendants[node].forEach ((desc) => { nodeScale[desc] = scale })
+        nodeScale[node] = 1 - scale
+        newlyHiddenColumns.forEach ((col) => columnScale[col] = scale)
+        newlyVisibleColumns.forEach ((col) => columnScale[col] = 1 - scale)
+        forceDisplayNode[node] = true
+        disableTreeEvents = true
+        animating = true
+      } else {
+        treeIndex.descendants[node].forEach ((desc) => { delete nodeScale[desc] })
+        delete nodeScale[node]
+        newlyHiddenColumns.forEach ((col) => delete columnScale[col])
+        newlyVisibleColumns.forEach ((col) => delete columnScale[col])
+        forceDisplayNode[node] = !wasCollapsed
+        newCollapsed = finalCollapsed
+        disableTreeEvents = false
+        animating = false
+      }
+      this.setState ({ view: { collapsed: newCollapsed, forceDisplayNode, nodeScale, columnScale, disableTreeEvents, animating } })
+
+      if (framesLeft) {
+        const currentTime = Date.now(),
+              timeSinceLastFrame = currentTime - lastFrameTime,
+              timeToNextFrame = Math.max (0, expectedTimeBetweenFrames - timeSinceLastFrame),
+              frameSkip = Math.min (collapseAnimationMaxFrameSkip, Math.ceil (timeSinceLastFrame / expectedTimeBetweenFrames))
+        framesLeft = Math.max (0, framesLeft - frameSkip)
+        lastFrameTime = currentTime
+        setTimeout (drawAnimationFrame, timeToNextFrame)
+      }
+    }
+
+    drawAnimationFrame (collapseAnimationFrames)
+  }
   
   handleAlignmentScroll (alignScrollLeft, scrollTop) {
     this.setState ({ alignScrollLeft, scrollTop })
@@ -241,12 +308,12 @@ class MSA extends Component {
     if (this.alignMouseDown || this.mousedown)
       evt.preventDefault()
     
+    let { alignScrollLeft, scrollTop } = this.state
     if (this.alignMouseDown) {
       const dx = evt.pageX - this.lastX
       if (dx) {
         this.lastX = evt.pageX
-        const alignScrollLeft = Math.max (0, Math.min (this.alignWidth - this.alignmentClientWidth, this.state.alignScrollLeft - dx))
-        this.setState ({ alignScrollLeft })
+        alignScrollLeft = Math.max (0, Math.min (this.alignWidth - this.alignmentClientWidth, alignScrollLeft - dx))
         this.panning = true
       }
     } else
@@ -256,17 +323,15 @@ class MSA extends Component {
       const dy = evt.pageY - this.lastY
       if (dy) {
         this.lastY = evt.pageY
-        const scrollTop = Math.max (0, Math.min (this.treeHeight - this.alignmentClientHeight, this.state.scrollTop - dy))
+        scrollTop = Math.max (0, Math.min (this.treeHeight - this.alignmentClientHeight, scrollTop - dy))
         this.setState ({ scrollTop })
         this.scrolling = true
       }
     } else
       this.scrolling = false
 
-    // attempt to scroll more smoothly by poking DOM directly. doesn't seem to be working
     if (this.panning || this.scrolling)
-      this.rowsRef.current.setScrollPos ({ scrollLeft: this.state.alignScrollLeft,
-                                           scrollTop: this.state.scrollTop })
+      this.setState ({ alignScrollLeft, scrollTop })
   }
 }
 

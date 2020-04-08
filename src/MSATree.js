@@ -22,12 +22,28 @@ class MSATree extends Component {
   }
 
   componentDidMount() {
+    this.renderTree()
+    this.canvasRef.current.addEventListener ('click', this.handleClick.bind(this))
+  }
+
+  componentWillUnmount() {
+    this.canvasRef.current.removeEventListener ('click', this.handleClick.bind(this))
+  }
+
+  componentDidUpdate() {
+    this.renderTree()
+  }
+
+  renderTree() {
     const { treeIndex, treeLayout, computedView, computedTreeConfig } = this.props
     const { collapsed, ancestorCollapsed, forceDisplayNode, nodeScale } = computedView
     const { treeWidth, branchStrokeStyle, treeStrokeWidth, rowConnectorDash, nodeHandleRadius, nodeHandleFillStyle, collapsedNodeHandleFillStyle } = computedTreeConfig
     const { nx, ny } = treeLayout
     const treeCanvas = this.canvasRef.current
     const ctx = treeCanvas.getContext('2d')
+    ctx.setTransform (1, 0, 0, 1, 0, 0)
+    ctx.globalAlpha = 1
+    ctx.clearRect (0, 0, treeCanvas.width, treeCanvas.height)
     ctx.strokeStyle = branchStrokeStyle
     ctx.lineWidth = treeStrokeWidth
     const makeNodeHandlePath = (node) => {
@@ -84,7 +100,25 @@ class MSATree extends Component {
       }
       ctx.fill()
     })
+    this.nodesWithHandles = nodesWithHandles
   }  
+
+  handleClick (evt) {
+    evt.preventDefault()
+    const { treeLayout } = this.props
+    const mouseX = parseInt (evt.offsetX)
+    const mouseY = parseInt (evt.offsetY)
+    let closestNode, closestNodeDistSquared
+    this.nodesWithHandles.forEach ((node) => {
+        const distSquared = Math.pow (mouseX - treeLayout.nx[node], 2) + Math.pow (mouseY - treeLayout.ny[node], 2)
+        if (typeof(closestNodeDistSquared) === 'undefined' || distSquared < closestNodeDistSquared) {
+          closestNodeDistSquared = distSquared
+          closestNode = node
+        }
+      })
+      if (closestNode && closestNodeDistSquared <= Math.pow(this.props.config.nodeHandleClickRadius,2))
+        this.props.handleNodeClick (closestNode)
+  }
 }
 
 export default MSATree;
