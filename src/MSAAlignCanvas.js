@@ -18,6 +18,7 @@ class MSAAlign extends Component {
 
   componentDidMount() {
     const alignCanvas = this.canvasRef.current
+    // render alignment...
   }
 }
 

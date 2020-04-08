@@ -16,17 +16,13 @@
 }
 
 .MSA-tree {
+    position: relative;
     overflow-x: scroll;
     overflow-y: hidden;
 }
 
-.MSA-alignment {
-    display: flex;
-    flex-direction: row;
-    overflow: hidden;
-}
-
 .MSA-alignment-names {
+    position: relative;
     margin-left: 2px;
     margin-right: 2px;
     overflow-x: scroll;

@@ -9,17 +9,17 @@ class MSAAlignNames extends Component {
   }
 
   render() {
-    const { data, computedFontConfig, treeIndex, alignIndex, config, view, computedView, treeLayout, alignLayout } = this.state
+    const { computedFontConfig, treeIndex, config, computedView, treeLayout } = this.state
     const { nameDivWidth } = config
-    const { nameFontName, nameFontSize, nameFontColor, charFont, charFontName, genericRowHeight } = computedFontConfig
+    const { nameFontName, nameFontSize } = computedFontConfig
 
-    const { treeHeight, nodeHeight } = treeLayout
-    const { alignWidth } = alignLayout
+    const { nodeHeight } = treeLayout
     
     return (<div className="MSA-alignment-names"
             style={{ fontFamily: nameFontName,
                      fontSize: nameFontSize + 'px',
-                     maxWidth: nameDivWidth }}>
+                     maxWidth: nameDivWidth,
+                     top: -this.state.scrollTop }}>
             { treeIndex.nodes
               .filter ((node) => computedView.nodeVisible[node])
               .map ((node, row) => {

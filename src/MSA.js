@@ -13,7 +13,10 @@ class MSA extends Component {
     const view = extend (this.initialView(),
                          props.view || {})
 
-    this.state = extend ({}, props, { view });
+    this.state = extend ({ scrollTop: 0,
+                           alignScrollLeft: 0 },
+                         props,
+                         { view });
   }
 
   initialView() {
@@ -22,8 +25,6 @@ class MSA extends Component {
       forceDisplayNode: {},   // force a node to be displayed even if it's flagged as collapsed. Used by animation code
       nodeScale: {},  // height scaling factor for tree nodes / alignment rows. From 0 to 1 (undefined implies 1)
       columnScale: {},  // height scaling factor for alignment columns. From 0 to 1 (undefined implies 1)
-      scrollTop: 0,
-      scrollLeft: 0,
       disableTreeEvents: false,
       structure: { openStructures: [] }
     } }
@@ -121,17 +122,9 @@ class MSA extends Component {
   }
   
   render() {
-    const { data, computedFontConfig, treeIndex, alignIndex, config, view } = this.state
-    const { rowData } = data
-    const structure = data.structure || {}, structureState = view.structure, structureConfig = config.structure || {}
-    const { nameDivWidth } = config
-    const { nameFontName, nameFontSize, nameFontColor, charFont, charFontName, genericRowHeight } = computedFontConfig
-
     const computedView = this.getComputedView()
     const treeLayout = this.layoutTree (computedView)
     const alignLayout = this.layoutAlignment (computedView)
-    const { nodeHeight, treeHeight } = treeLayout
-    const { alignWidth } = alignLayout
 
     return (
         <div className="MSA"
@@ -148,8 +141,8 @@ class MSA extends Component {
       treeIndex={this.state.treeIndex}
       treeLayout={treeLayout}
       computedView={computedView}
-      visibleHeight={this.state.rowsDivClientHeight}
-      MSA={this} />
+      scrollTop={this.state.scrollTop}
+        />
 
         <MSAAlignNames
       data={this.state.data}
@@ -161,7 +154,8 @@ class MSA extends Component {
       treeLayout={treeLayout}
       alignLayout={alignLayout}
       computedView={computedView}
-      MSA={this} />
+      scrollTop={this.state.scrollTop}
+        />
       
         <MSAAlignRows
       data={this.state.data}
@@ -173,7 +167,10 @@ class MSA extends Component {
       treeLayout={treeLayout}
       alignLayout={alignLayout}
       computedView={computedView}
-      MSA={this} />
+      handleAlignmentScroll={this.handleAlignmentScroll.bind(this)}
+      scrollLeft={this.state.alignScrollLeft}
+      scrollTop={this.state.scrollTop}
+        />
         </div>
 
         <MSAStructs
@@ -182,6 +179,10 @@ class MSA extends Component {
 
       </div>
     )
+  }
+
+  handleAlignmentScroll (alignScrollLeft, scrollTop) {
+    this.setState ({ alignScrollLeft, scrollTop })
   }
 }
 

@@ -14,7 +14,7 @@ class MSATree extends Component {
     const { treeHeight } = this.state.treeLayout
     return (<div className="MSA-tree"
             style={{ minWidth: treeWidth,
-                     height: this.state.visibleHeight }}>
+                     top: -this.state.scrollTop }}>
             <canvas
             ref={this.canvasRef}
             width={treeWidth}
