@@ -26,11 +26,17 @@ class MSAAlignRows extends Component {
 
   componentDidUpdate() {
     this.setScrollPos()
+    this.setClientSize()
   }
   
   componentDidMount() {
     this.setScrollPos()
-    this.props.setClientHeight (this.rowsDivRef.current.clientHeight)
+    this.setClientSize()
+  }
+
+  setClientSize() {
+    this.props.setClientSize (this.rowsDivRef.current.clientWidth,
+                              this.rowsDivRef.current.clientHeight)
   }
   
   setScrollPos() {

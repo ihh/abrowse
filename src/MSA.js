@@ -172,7 +172,7 @@ class MSA extends Component {
       treeLayout={treeLayout}
       alignLayout={alignLayout}
       computedView={computedView}
-      setClientHeight={this.setAlignmentClientHeight.bind(this)}
+      setClientSize={this.setAlignmentClientSize.bind(this)}
       handleAlignmentScroll={this.handleAlignmentScroll.bind(this)}
       handleMouseDown={this.handleRowsMouseDown.bind(this)}
       scrollLeft={this.state.alignScrollLeft}
@@ -194,7 +194,8 @@ class MSA extends Component {
     window.addEventListener ('mousemove', this.handleMouseMove.bind(this))
   }
 
-  setAlignmentClientHeight (h) {
+  setAlignmentClientSize (w, h) {
+    this.alignmentClientWidth = w
     this.alignmentClientHeight = h
   }
   
@@ -234,7 +235,7 @@ class MSA extends Component {
     if (this.rowsMouseDown) {
       const dx = evt.pageX - this.lastX
       this.lastX = evt.pageX
-      const alignScrollLeft = Math.max (0, Math.min (this.alignWidth, this.state.alignScrollLeft + dx))
+      const alignScrollLeft = Math.max (0, Math.min (this.alignWidth - this.alignmentClientWidth, this.state.alignScrollLeft + dx))
       this.setState ({ alignScrollLeft })
       this.panning = true
     }
