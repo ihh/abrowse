@@ -194,6 +194,12 @@ class MSA extends Component {
     window.addEventListener ('mousemove', this.handleMouseMove.bind(this))
   }
 
+  componentWillUnmount() {
+    window.removeEventListener ('mouseleave', this.handleMouseLeave.bind(this))
+    window.removeEventListener ('mouseup', this.handleMouseUp.bind(this))
+    window.removeEventListener ('mousemove', this.handleMouseMove.bind(this))
+  }
+
   setAlignmentClientSize (w, h) {
     this.alignmentClientWidth = w
     this.alignmentClientHeight = h

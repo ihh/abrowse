@@ -7,6 +7,7 @@ class MSAAlignRows extends Component {
   constructor(props) {
     super(props);
     this.rowsDivRef = React.createRef()
+    this.alignCanvasRef = React.createRef()
   }
 
   render() {
@@ -17,7 +18,9 @@ class MSAAlignRows extends Component {
             ref={this.rowsDivRef}
             onScroll={this.onScroll.bind(this)}
             onMouseDown={this.onMouseDown.bind(this)}>
-            <MSAAlignCanvas/>
+            <MSAAlignCanvas
+            ref={this.alignCanvasRef}
+            />
             <div className="MSA-alignment-rows-back"
             style={{ width: alignWidth,
                      height: treeHeight }} />
@@ -32,11 +35,18 @@ class MSAAlignRows extends Component {
   componentDidMount() {
     this.setScrollPos()
     this.setClientSize()
+    window.addEventListener ('resize', this.setClientSize.bind(this))
+  }
+
+  componentWillUnmount() {
+    window.removeEventListener ('resize', this.setClientSize.bind(this))
   }
 
   setClientSize() {
     this.props.setClientSize (this.rowsDivRef.current.clientWidth,
                               this.rowsDivRef.current.clientHeight)
+    this.alignCanvasRef.current.setClientSize (this.rowsDivRef.current.clientWidth,
+                                               this.rowsDivRef.current.clientHeight)
   }
   
   setScrollPos() {
