@@ -15,7 +15,8 @@ class MSAAlignRows extends Component {
 
     return (<div className="MSA-alignment-rows"
             ref={this.rowsDivRef}
-            onScroll={this.onScroll.bind(this)}>
+            onScroll={this.onScroll.bind(this)}
+            onMouseDown={this.onMouseDown.bind(this)}>
             <MSAAlignCanvas/>
             <div className="MSA-alignment-rows-back"
             style={{ width: alignWidth,
@@ -23,17 +24,27 @@ class MSAAlignRows extends Component {
             </div>)
   }
 
-  componentDidUpdate() { this.setScrollPos() }
-  componentDidMount() { this.setScrollPos() }
+  componentDidUpdate() {
+    this.setScrollPos()
+  }
+  
+  componentDidMount() {
+    this.setScrollPos()
+    this.props.setClientHeight (this.rowsDivRef.current.clientHeight)
+  }
   
   setScrollPos() {
     this.rowsDivRef.current.scrollLeft = this.props.scrollLeft
     this.rowsDivRef.current.scrollTop = this.props.scrollTop
   }
 
-  onScroll() {
+  onScroll (evt) {
     this.props.handleAlignmentScroll (this.rowsDivRef.current.scrollLeft,
                                       this.rowsDivRef.current.scrollTop)
+  }
+
+  onMouseDown (evt) {
+    this.props.handleMouseDown (evt)
   }
 }
 

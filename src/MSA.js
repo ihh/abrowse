@@ -126,8 +126,13 @@ class MSA extends Component {
     const treeLayout = this.layoutTree (computedView)
     const alignLayout = this.layoutAlignment (computedView)
 
+    // record the dimensions for drag handling
+    this.treeHeight = treeLayout.treeHeight
+    this.alignWidth = alignLayout.alignWidth
+    
     return (
         <div className="MSA"
+      onMouseDown={this.handleMouseDown.bind(this)}
       style={{ width: this.state.config.containerWidth,
                height: this.state.config.containerHeight }}>
 
@@ -167,7 +172,9 @@ class MSA extends Component {
       treeLayout={treeLayout}
       alignLayout={alignLayout}
       computedView={computedView}
+      setClientHeight={this.setAlignmentClientHeight.bind(this)}
       handleAlignmentScroll={this.handleAlignmentScroll.bind(this)}
+      handleMouseDown={this.handleRowsMouseDown.bind(this)}
       scrollLeft={this.state.alignScrollLeft}
       scrollTop={this.state.scrollTop}
         />
@@ -181,8 +188,64 @@ class MSA extends Component {
     )
   }
 
+  componentDidMount() {
+    window.addEventListener ('mouseleave', this.handleMouseLeave.bind(this))
+    window.addEventListener ('mouseup', this.handleMouseUp.bind(this))
+    window.addEventListener ('mousemove', this.handleMouseMove.bind(this))
+  }
+
+  setAlignmentClientHeight (h) {
+    this.alignmentClientHeight = h
+  }
+  
   handleAlignmentScroll (alignScrollLeft, scrollTop) {
     this.setState ({ alignScrollLeft, scrollTop })
+  }
+
+  handleMouseDown (evt) {
+    this.mouseDown = true
+    this.lastY = evt.pageY
+  }
+
+  handleRowsMouseDown (evt) {
+    this.rowsMouseDown = true
+    this.lastX = evt.pageX
+  }
+
+  handleMouseLeave() {
+    this.rowsMouseDown = false
+    this.mouseDown = false
+    this.panning = this.scrolling = false
+  }
+
+  handleMouseUp() {
+    this.rowsMouseDown = false
+    this.mouseDown = false
+  }
+
+  handleClick() {
+    this.panning = this.scrolling = false
+  }
+  
+  handleMouseMove (evt) {
+    if (this.rowsMouseDown || this.mousedown)
+      evt.preventDefault()
+    
+    if (this.rowsMouseDown) {
+      const dx = evt.pageX - this.lastX
+      this.lastX = evt.pageX
+      const alignScrollLeft = Math.max (0, Math.min (this.alignWidth, this.state.alignScrollLeft + dx))
+      this.setState ({ alignScrollLeft })
+      this.panning = true
+    }
+
+    if (this.mouseDown) {
+      const dy = evt.pageY - this.lastY
+      this.lastY = evt.pageY
+      const scrollTop = Math.max (0, Math.min (this.treeHeight - this.alignmentClientHeight, this.state.scrollTop + dy))
+      this.setState ({ scrollTop })
+      this.scrolling = true
+    }
   }
 }
 
