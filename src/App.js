@@ -37,9 +37,8 @@ class App extends Component {
     const nameFontName = 'serif'
     const nameFontColor = 'black'
     const charFont = genericRowHeight + 'px ' + charFontName
-    const nameFont = nameFontSize + 'px ' + nameFontName
     const color = config.color || colorSchemes[config.colorScheme]
-    const computedFontConfig = { charFont, charFontName, color, nameFont, nameFontName, nameFontSize, nameFontColor, genericRowHeight }
+    const computedFontConfig = { charFont, charFontName, color, nameFontName, nameFontSize, nameFontColor, genericRowHeight }
     
     // state
     this.state = { config,

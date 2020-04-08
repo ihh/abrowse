@@ -9,13 +9,15 @@
 .MSA-tree-alignment {
     display: flex;
     flex-direction: row;
-    overflow-y: auto;
+    overflow: hidden;
     border-style: solid;
     border-color: black;
     border-width: 1px;
 }
 
 .MSA-tree {
+    overflow-x: scroll;
+    overflow-y: hidden;
 }
 
 .MSA-alignment {
@@ -27,16 +29,22 @@
 .MSA-alignment-names {
     margin-left: 2px;
     margin-right: 2px;
-    overflow-x: auto;
+    overflow-x: scroll;
     overflow-y: hidden;
     flex-shrink: 0;
     white-space: nowrap;
 }
 
+.MSA-alignment-name {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
 .MSA-alignment-rows {
     position: relative;
     overflow-x: scroll;
-    overflow-y: hidden;
+    overflow-y: scroll;
     -moz-user-select: none;
     -webkit-user-select: none;
     -ms-user-select: none;

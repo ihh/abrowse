@@ -2,7 +2,8 @@ import React, { Component } from 'react';
 import { extend } from 'lodash';
 
 import MSATree from './MSATree';
-import MSAAlign from './MSAAlign';
+import MSAAlignNames from './MSAAlignNames';
+import MSAAlignRows from './MSAAlignRows';
 import MSAStructs from './MSAStructs';
 
 class MSA extends Component {
@@ -120,9 +121,17 @@ class MSA extends Component {
   }
   
   render() {
+    const { data, computedFontConfig, treeIndex, alignIndex, config, view } = this.state
+    const { rowData } = data
+    const structure = data.structure || {}, structureState = view.structure, structureConfig = config.structure || {}
+    const { nameDivWidth } = config
+    const { nameFontName, nameFontSize, nameFontColor, charFont, charFontName, genericRowHeight } = computedFontConfig
+
     const computedView = this.getComputedView()
     const treeLayout = this.layoutTree (computedView)
     const alignLayout = this.layoutAlignment (computedView)
+    const { nodeHeight, treeHeight } = treeLayout
+    const { alignWidth } = alignLayout
 
     return (
         <div className="MSA"
@@ -139,9 +148,10 @@ class MSA extends Component {
       treeIndex={this.state.treeIndex}
       treeLayout={treeLayout}
       computedView={computedView}
+      visibleHeight={this.state.rowsDivClientHeight}
       MSA={this} />
 
-        <MSAAlign
+        <MSAAlignNames
       data={this.state.data}
       view={this.state.view}
       config={this.state.config}
@@ -152,7 +162,19 @@ class MSA extends Component {
       alignLayout={alignLayout}
       computedView={computedView}
       MSA={this} />
-      </div>
+      
+        <MSAAlignRows
+      data={this.state.data}
+      view={this.state.view}
+      config={this.state.config}
+      computedFontConfig={this.state.computedFontConfig}
+      treeIndex={this.state.treeIndex}
+      alignIndex={this.state.alignIndex}
+      treeLayout={treeLayout}
+      alignLayout={alignLayout}
+      computedView={computedView}
+      MSA={this} />
+        </div>
 
         <MSAStructs
       config={this.state.config}

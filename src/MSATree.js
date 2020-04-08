@@ -10,11 +10,15 @@ class MSATree extends Component {
   }
 
   render() {
-    return (<div className="MSA-tree">
+    const { treeWidth } = this.state.computedTreeConfig
+    const { treeHeight } = this.state.treeLayout
+    return (<div className="MSA-tree"
+            style={{ minWidth: treeWidth,
+                     height: this.state.visibleHeight }}>
             <canvas
             ref={this.canvasRef}
-            width={this.state.computedTreeConfig.treeWidth}
-            height={this.state.treeLayout.treeHeight}
+            width={treeWidth}
+            height={treeHeight}
             />
             </div>)
   }
