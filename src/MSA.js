@@ -275,7 +275,9 @@ class MSA extends Component {
   }
   
   handleAlignmentScroll (alignScrollLeft, scrollTop) {
-    this.setState ({ alignScrollLeft, scrollTop })
+    if (alignScrollLeft !== this.state.alignScrollLeft
+        || scrollTop !== this.state.scrollTop)
+      this.setState ({ alignScrollLeft, scrollTop })
   }
 
   handleMouseDown (evt) {
@@ -329,22 +331,14 @@ class MSA extends Component {
       this.scrolling = false
 
     if (updated) {
-      const nextScrollUpdate = { pageX: evt.pageX,
-                                 pageY: evt.pageY,
-                                 alignScrollLeft,
-                                 scrollTop }
-      if (!this.nextScrollUpdate)
-        window.requestAnimationFrame (this.updateScroll.bind(this))
-      this.nextScrollUpdate = nextScrollUpdate
+      if (this.animationTimeout)
+        window.cancelAnimationFrame (this.animationTimeout)
+      this.animationTimeout = window.requestAnimationFrame (() => {
+        this.setState ({ alignScrollLeft, scrollTop })
+        this.lastX = evt.pageX
+        this.lastY = evt.pageY
+      })
     }
-  }
-
-  updateScroll() {
-    const { alignScrollLeft, scrollTop } = this.nextScrollUpdate
-    this.setState ({ alignScrollLeft, scrollTop })
-    this.lastX = this.nextScrollUpdate.pageX
-    this.lastY = this.nextScrollUpdate.pageY
-    delete this.nextScrollUpdate
   }
 }
 

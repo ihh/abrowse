@@ -40,7 +40,6 @@ class MSAAlignRows extends Component {
 
   componentDidUpdate() {
     this.setScrollPos()
-    this.setClientSize()
   }
   
   componentDidMount() {
