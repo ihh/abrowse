@@ -15,7 +15,6 @@ class MSA extends Component {
 
     this.state = extend ({ scrollTop: 0,
                            alignScrollLeft: 0 },
-                         props,
                          { view });
 
     this.rowsRef = React.createRef()
@@ -36,7 +35,7 @@ class MSA extends Component {
   // get tree collapsed/open state
   getComputedView (view) {
     view = view || this.state.view
-    const { treeIndex, alignIndex } = this.state
+    const { treeIndex, alignIndex } = this.props
     const { collapsed, forceDisplayNode } = view
     const { rowDataAsArray } = alignIndex
     let ancestorCollapsed = {}, nodeVisible = {}
@@ -53,7 +52,7 @@ class MSA extends Component {
     let columnVisible = new Array(alignIndex.columns).fill(false)
     treeIndex.nodes.filter ((node) => nodeVisible[node]).forEach ((node) => {
       if (rowDataAsArray[node])
-        rowDataAsArray[node].forEach ((c, col) => { if (!this.state.isGapChar(c)) columnVisible[col] = true })
+        rowDataAsArray[node].forEach ((c, col) => { if (!this.props.isGapChar(c)) columnVisible[col] = true })
     })
     return extend ({ ancestorCollapsed, nodeVisible, columnVisible },
                    view)
@@ -61,7 +60,7 @@ class MSA extends Component {
   
   // layout tree
   layoutTree (computedView) {
-    const { computedTreeConfig, treeIndex } = this.state
+    const { computedTreeConfig, treeIndex } = this.props
     const { nodeVisible, nodeScale } = computedView
     const { genericRowHeight, nodeHandleRadius, treeStrokeWidth, availableTreeWidth, scrollbarHeight } = computedTreeConfig
     let nx = {}, ny = {}, computedRowScale = [], nodeHeight = {}, rowHeight = [], treeHeight = 0
@@ -83,7 +82,7 @@ class MSA extends Component {
 
   // get metrics and other info about alignment font/chars, and do layout
   layoutAlignment (computedView) {
-    const { alignIndex, computedFontConfig } = this.state
+    const { alignIndex, computedFontConfig } = this.props
     const { genericRowHeight, charFont } = computedFontConfig
     const alignChars = alignIndex.chars
     let charWidth = 0, charMetrics = {}
@@ -139,17 +138,17 @@ class MSA extends Component {
         <div className="MSA"
       ref={this.msaRef}
       onMouseDown={this.handleMouseDown.bind(this)}
-      style={{ width: this.state.config.containerWidth,
-               height: this.state.config.containerHeight }}>
+      style={{ width: this.props.config.containerWidth,
+               height: this.props.config.containerHeight }}>
 
         <div className="MSA-tree-alignment"
-      style={{ width: this.state.config.containerWidth,
+      style={{ width: this.props.config.containerWidth,
                height: treeLayout.treeAlignHeight }}>
 
         <MSATree
-      config={this.state.config}
-      computedTreeConfig={this.state.computedTreeConfig}
-      treeIndex={this.state.treeIndex}
+      config={this.props.config}
+      computedTreeConfig={this.props.computedTreeConfig}
+      treeIndex={this.props.treeIndex}
       treeLayout={treeLayout}
       computedView={computedView}
       scrollTop={this.state.scrollTop}
@@ -157,12 +156,12 @@ class MSA extends Component {
         />
 
         <MSAAlignNames
-      data={this.state.data}
+      data={this.props.data}
       view={this.state.view}
-      config={this.state.config}
-      computedFontConfig={this.state.computedFontConfig}
-      treeIndex={this.state.treeIndex}
-      alignIndex={this.state.alignIndex}
+      config={this.props.config}
+      computedFontConfig={this.props.computedFontConfig}
+      treeIndex={this.props.treeIndex}
+      alignIndex={this.props.alignIndex}
       treeLayout={treeLayout}
       alignLayout={alignLayout}
       computedView={computedView}
@@ -171,12 +170,12 @@ class MSA extends Component {
       
         <MSAAlignRows
       ref={this.rowsRef}
-      data={this.state.data}
+      data={this.props.data}
       view={this.state.view}
-      config={this.state.config}
-      computedFontConfig={this.state.computedFontConfig}
-      treeIndex={this.state.treeIndex}
-      alignIndex={this.state.alignIndex}
+      config={this.props.config}
+      computedFontConfig={this.props.computedFontConfig}
+      treeIndex={this.props.treeIndex}
+      alignIndex={this.props.alignIndex}
       treeLayout={treeLayout}
       alignLayout={alignLayout}
       setClientSize={this.setAlignmentClientSize.bind(this)}
@@ -191,7 +190,7 @@ class MSA extends Component {
         </div>
 
         <MSAStructs
-      config={this.state.config}
+      config={this.props.config}
       MSA={this} />
 
       </div>
@@ -309,7 +308,7 @@ class MSA extends Component {
     // nonzero deltaMode is Firefox, means deltaY is in lines instead of pixels
     // can be corrected for e.g. https://stackoverflow.com/questions/20110224/what-is-the-height-of-a-line-in-a-wheel-event-deltamode-dom-delta-line
     if (evt.deltaY !== 0) {
-      const deltaY = evt.deltaY * (evt.deltaMode ? this.state.config.genericRowHeight : 1)
+      const deltaY = evt.deltaY * (evt.deltaMode ? this.props.config.genericRowHeight : 1)
       evt.preventDefault()
       this.requestAnimationFrame (() => {
         this.setState ({ alignScrollLeft: this.incAlignScrollLeft (evt.deltaX),
