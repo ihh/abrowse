@@ -202,14 +202,14 @@ class MSA extends Component {
     window.addEventListener ('mouseleave', this.handleMouseLeave.bind(this))
     window.addEventListener ('mouseup', this.handleMouseUp.bind(this))
     window.addEventListener ('mousemove', this.handleMouseMove.bind(this))
-    this.msaRef.current.addEventListener ('mousewheel', this.handleMouseWheel.bind(this))
+    this.msaRef.current.addEventListener ('wheel', this.handleMouseWheel.bind(this))
   }
 
   componentWillUnmount() {
     window.removeEventListener ('mouseleave', this.handleMouseLeave.bind(this))
     window.removeEventListener ('mouseup', this.handleMouseUp.bind(this))
     window.removeEventListener ('mousemove', this.handleMouseMove.bind(this))
-    this.msaRef.current.removeEventListener ('mousewheel', this.handleMouseWheel.bind(this))
+    this.msaRef.current.removeEventListener ('wheel', this.handleMouseWheel.bind(this))
   }
 
   setAlignmentClientSize (w, h) {
@@ -292,7 +292,9 @@ class MSA extends Component {
   }
 
   handleMouseWheel (evt) {
-    if (evt.deltaY) {
+    // nonzero deltaMode is Firefox, means deltaY is in lines instead of pixels
+    // can be corrected for e.g. https://stackoverflow.com/questions/20110224/what-is-the-height-of-a-line-in-a-wheel-event-deltamode-dom-delta-line
+    if (evt.deltaY !== 0 && evt.deltaMode === 0) {
       evt.preventDefault()
       this.requestAnimationFrame (() => {
         this.setState ({ alignScrollLeft: this.incAlignScrollLeft (evt.deltaX),
