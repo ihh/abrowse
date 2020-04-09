@@ -43,6 +43,16 @@
     justify-content: center;
 }
 
+.MSA-alignment-name-link {
+  color: blue; 
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+.MSA-alignment-name-link:active {
+    color: red;
+}
+
 .MSA-alignment-rows {
     position: relative;
     overflow-x: scroll;

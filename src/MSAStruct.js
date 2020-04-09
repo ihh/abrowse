@@ -11,7 +11,6 @@ class MSAStruct extends Component {
   }
 
   render() {
-    console.warn(this.props)
     return (<div
             className="MSA-structure"
             style={{width: this.props.config.structure.width,
@@ -22,7 +21,7 @@ class MSAStruct extends Component {
             </div>
             <div className="MSA-structure-close-button">
             <button onClick={this.handleClose.bind(this)}>
-            x</button>
+            X</button>
             </div>
             <div
             className="MSA-structure-pv"

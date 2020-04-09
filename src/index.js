@@ -109,7 +109,7 @@ const opts = {
     }
   },
   config: {
-    containerHeight: '400px',
+    containerHeight: '800px',
     handler: {
       click: (coords) => {
         console.warn ('Click ' + coords.node + ' column ' + coords.column + (coords.isGap ? '' : (', position ' + coords.seqPos)) + ' (' + coords.c + ')')

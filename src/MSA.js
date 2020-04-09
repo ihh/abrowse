@@ -21,6 +21,7 @@ class MSA extends Component {
     this.msaRef = React.createRef()
   }
 
+  // config/defaults
   initialView() {
     return {
       collapsed: {},   // true if an internal node has been collapsed by the user
@@ -31,6 +32,13 @@ class MSA extends Component {
       animating: false,
       structure: { openStructures: [] }
     } }
+
+  mouseoverLabelDelay() { return 100 }
+  redrawStructureDelay() { return 500 }
+
+  collapseAnimationFrames() { return 10 }
+  collapseAnimationDuration() { return 200 }
+  collapseAnimationMaxFrameSkip() { return 8 }
 
   // get tree collapsed/open state
   getComputedView (view) {
@@ -144,6 +152,7 @@ class MSA extends Component {
 
         <div className="MSA-tree-alignment"
       onMouseDown={this.handleMouseDown.bind(this)}
+      onMouseLeave={this.removeLabelFromStructuresOnMouseout.bind(this)}
       style={{ width: this.props.config.containerWidth,
                height: treeLayout.treeAlignHeight }}>
 
@@ -241,6 +250,8 @@ class MSA extends Component {
       this.scrolling = false
       return
     }
+    if (this.state.disableTreeEvents)
+      return
 
     const { treeIndex, alignIndex } = this.props
     const computedView = this.getComputedView()
@@ -249,10 +260,7 @@ class MSA extends Component {
     const alignLayout = this.layoutAlignment (computedView)
     const left = this.state.alignScrollLeft, right = left + this.alignmentClientWidth
 
-    const collapseAnimationFrames = 10
-    const collapseAnimationDuration = 200
-    const collapseAnimationMaxFrameSkip = 8
-
+    const collapseAnimationFrames = this.collapseAnimationFrames()
     let framesLeft = collapseAnimationFrames
 
     const wasCollapsed = collapsed[node], finalCollapsed = extend ({}, collapsed)
@@ -275,7 +283,7 @@ class MSA extends Component {
     const centroidMinusScroll = this.centroidOfColumns (persistingVisibleColumns, alignLayout) - this.state.alignScrollLeft
 
     let lastFrameTime = Date.now()
-    const expectedTimeBetweenFrames = collapseAnimationDuration / collapseAnimationFrames
+    const expectedTimeBetweenFrames = this.collapseAnimationDuration() / collapseAnimationFrames
     const drawAnimationFrame = () => {
       window.requestAnimationFrame (() => {
         let disableTreeEvents, animating, newCollapsed = collapsed
@@ -298,7 +306,7 @@ class MSA extends Component {
           disableTreeEvents = false
           animating = false
         }
-        const view = { collapsed: newCollapsed, forceDisplayNode, nodeScale, columnScale, disableTreeEvents, animating }
+        const view = extend ({}, this.state.view, { collapsed: newCollapsed, forceDisplayNode, nodeScale, columnScale, disableTreeEvents, animating })
         const computedView = this.getComputedView (view), alignLayout = this.layoutAlignment (computedView)
         const alignScrollLeft = this.boundAlignScrollLeft (this.centroidOfColumns (persistingVisibleColumns, alignLayout) - centroidMinusScroll)
         this.setState ({ alignScrollLeft, view })
@@ -307,7 +315,7 @@ class MSA extends Component {
           const currentTime = Date.now(),
                 timeSinceLastFrame = currentTime - lastFrameTime,
                 timeToNextFrame = Math.max (0, expectedTimeBetweenFrames - timeSinceLastFrame),
-                frameSkip = Math.min (collapseAnimationMaxFrameSkip, Math.ceil (timeSinceLastFrame / expectedTimeBetweenFrames))
+                frameSkip = Math.min (this.collapseAnimationMaxFrameSkip(), Math.ceil (timeSinceLastFrame / expectedTimeBetweenFrames))
           framesLeft = Math.max (0, framesLeft - frameSkip)
           lastFrameTime = currentTime
           setTimeout (drawAnimationFrame, timeToNextFrame)
@@ -356,16 +364,60 @@ class MSA extends Component {
 
   handleAlignCharMouseOver (coords) {
     if (!this.panning && !this.scrolling) {
+      this.addLabelToStructuresOnMouseover (coords)
 //      console.warn('mouseover',coords)
     }
   }
 
   handleAlignCharMouseOut (coords) {
     if (!this.panning && !this.scrolling) {
+      this.removeLabelFromStructuresOnMouseout()
 //      console.warn('mouseout',coords)
     }
   }
 
+  addLabelToStructuresOnMouseover (coords) {
+    this.setTimer ('mouseover', this.mouseoverLabelDelay(), () => {
+      this.state.view.structure.openStructures.forEach ((s) => {
+        if (coords.c && !this.props.isGapChar(coords.c) && s.viewer) {
+          const colToSeqPos = this.props.alignIndex.alignColToSeqPos[s.node]
+          if (colToSeqPos) {
+            const seqPos = colToSeqPos[coords.column]
+            const pdbSeqPos = seqPos + (typeof(s.structureInfo.startPos) === 'undefined' ? 1 : s.structureInfo.startPos)
+            const pdbChain = s.structureInfo.chain
+            const residues = s.pdb.residueSelect ((res) => {
+              return res.num() === pdbSeqPos
+                && (typeof(pdbChain) === 'undefined' || res.chain().name() === pdbChain)
+            })
+            if (residues) {
+              const labelConfig = s.structureInfo.labelConfig || { fontSize : 16,
+                                                                   fontColor: '#f22',
+                                                                   backgroundAlpha : 0.4 }
+              if (s.hasMouseoverLabel)
+                s.viewer.rm ('mouseover')
+              residues.eachResidue ((res) => {
+                s.viewer.label ('mouseover', res.qualifiedName(), res.centralAtom().pos(), labelConfig)
+              })
+              s.hasMouseoverLabel = true
+              this.requestRedrawStructure (s)
+            }
+          }
+        }
+      })
+    })
+  }
+
+  removeLabelFromStructuresOnMouseout() {
+    this.clearTimer ('mouseover')
+    this.state.view.structure.openStructures.forEach ((s) => {
+      if (s.hasMouseoverLabel) {
+        s.viewer.rm ('mouseover')
+        this.requestRedrawStructure (s)
+        delete s.hasMouseoverLabel
+      }
+    })
+  }
+  
   handleMouseLeave() {
     this.alignMouseDown = false
     this.mouseDown = false
@@ -430,10 +482,34 @@ class MSA extends Component {
       })
   }
 
+  // delayed request to redraw structure
+  requestRedrawStructure (structure) {
+    this.setTimer ('redraw', this.redrawStructureDelay(), () => structure.viewer.requestRedraw())
+  }
+
+  // request animation frame
   requestAnimationFrame (callback) {
     if (this.animationTimeout)
       window.cancelAnimationFrame (this.animationTimeout)
     this.animationTimeout = window.requestAnimationFrame (callback)
+  }
+
+  // set generic timer
+  setTimer (name, delay, callback) {
+    this.timer = this.timer || {}
+    this.clearTimer (this, name)
+    this.timer[name] = window.setTimeout (() => {
+      delete this.timer[name]
+      callback()
+    }, delay)
+  }
+
+  // clear generic timer
+  clearTimer (name) {
+    if (this.timer && this.timer[name]) {
+      window.clearTimeout (this.timer[name])
+      delete this.timer[name]
+    }
   }
 }
 

@@ -28,11 +28,16 @@ class MSAAlignNames extends Component {
                 return (<div className="MSA-alignment-name"
                         key={node}
                         style={style}>
-                        <span>
                         { structure[node]
-                          ? (<button onClick={()=>this.props.handleNameClick(node)}> { node } </button>)
-                          : node }
-                        </span>
+                          ? (<span
+                             className="MSA-alignment-name-link"
+                             onClick={()=>this.props.handleNameClick(node)}
+                             style={{ fontFamily: nameFontName,
+                                      fontSize: nameFontSize + 'px' }}
+                             >
+                             { node }
+                             </span>)
+                          : (<span> { node } </span>) }
                         </div>)
               }) }
             </div>
