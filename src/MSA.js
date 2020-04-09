@@ -204,6 +204,7 @@ class MSA extends Component {
         <MSAStructPanel
       config={this.props.config}
       structures={this.state.view.structure.openStructures}
+      updateStructure={this.updateStructure.bind(this)}
       handleCloseStructure={this.handleCloseStructure.bind(this)}
         />
 
@@ -236,6 +237,15 @@ class MSA extends Component {
     const newStructure = { node, structureInfo: structure[node], key: this.nStructs }
     let view = this.state.view
     view.structure.openStructures.push (newStructure)
+    this.setState ({ view })
+  }
+
+  updateStructure (structure, newStructure) {
+    let view = this.state.view
+    view.structure.openStructures = view.structure.openStructures
+      .map ((s) => (s === structure
+                    ? extend (s, newStructure)
+                    : s))
     this.setState ({ view })
   }
 

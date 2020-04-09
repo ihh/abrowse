@@ -89,6 +89,13 @@
     border-width: 1px;
     padding-top: 2px;
     margin: 1px;
+    display: flex;
+    flex-direction: column;
+}
+
+.MSA-structure-top {
+    position: relative;
+    width: 100%;
 }
 
 .MSA-structure-label {
@@ -103,5 +110,10 @@
     top: 2px;
     right: 2px;
     font-size: small;
+}
+
+.MSA-structure-main {
+    width: 100%;
+    flex-grow: 1;
 }
 

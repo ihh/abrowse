@@ -11,6 +11,7 @@ class MSAStructPanel extends Component {
                       key={structure.key}
                       structure={structure}
                       config={this.props.config}
+                      updateStructure={(info) => this.props.updateStructure(structure,info)}
                       handleCloseStructure={this.props.handleCloseStructure}
                       />)
             })}

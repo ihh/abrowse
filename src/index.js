@@ -101,11 +101,15 @@ const opts = {
       "Q06BD7_9BETC/326-540": "PNLP-DCNIEAWLNDKSV--PSPLNWERKTFSNCNFNMSSLMSFIQADSFTCNNIDAAKIYGMCFSSITIDKFAIPNGRKVDLQLGNLGYLQSFNYRI--DTTATSCQL-----------------YYNLPA-AN---VS------VSRFNPSTWNRRF--GFTEQSVFKPQ--------PAGV-FTDHDVVY-AQHC-----------F---K----------AP---T----N------F----------C------------------------PCKLDGSLCVGNG-----PGIDAGYKT----S-----G--IG------T-------------------CPAGTNYLTCH---------------NAA---Q-----------CN------------------CLCTPDPI-------------T----------------------"
     },
     structure: {
-      'SPIKE_CVHSA/317-569': {
+      'SPIKE_CVHSA/317-569': [{
         pdbFile: '5wrg',
         startPos: 317,
         chain: 'A'
-      }
+      }, {
+        pdbFile: '5xlr',
+        startPos: 317,
+        chain: 'A'
+      }]
     }
   },
   config: {
