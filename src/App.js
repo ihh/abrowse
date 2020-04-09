@@ -133,7 +133,7 @@ class App extends Component {
           })
       } else {
         console.warn ('Reconstructing ancestral sequences...')
-        getAncestralReconstruction (branches, rowData)
+        getAncestralReconstruction ({ branches, rowData })
           .then ((ancestralRowData) => {
             this.incorporateAncestralReconstruction (ancestralRowData)
           })
