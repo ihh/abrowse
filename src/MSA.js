@@ -180,7 +180,9 @@ class MSA extends Component {
       setClientSize={this.setAlignmentClientSize.bind(this)}
       handleScroll={this.handleAlignmentScroll.bind(this)}
       handleMouseDown={this.handleAlignmentMouseDown.bind(this)}
-      handleClick={this.handleAlignmentClick.bind(this)}
+      handleAlignCharClick={this.handleAlignCharClick.bind(this)}
+      handleAlignCharMouseOver={this.handleAlignCharMouseOver.bind(this)}
+      handleAlignCharMouseOut={this.handleAlignCharMouseOut.bind(this)}
       scrollLeft={this.state.alignScrollLeft}
       scrollTop={this.state.scrollTop}
         />
@@ -295,8 +297,23 @@ class MSA extends Component {
     this.lastX = evt.pageX
   }
 
-  handleAlignmentClick() {
+  handleAlignCharClick (coords) {
+    if (!this.panning && !this.scrolling) {
+//      console.warn('click',coords)
+    }
     this.panning = this.scrolling = false
+  }
+
+  handleAlignCharMouseOver (coords) {
+    if (!this.panning && !this.scrolling) {
+//      console.warn('mouseover',coords)
+    }
+  }
+
+  handleAlignCharMouseOut (coords) {
+    if (!this.panning && !this.scrolling) {
+//      console.warn('mouseout',coords)
+    }
   }
 
   handleMouseLeave() {

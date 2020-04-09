@@ -16,8 +16,10 @@ class MSAAlignRows extends Component {
 
     return (<div className="MSA-alignment-rows"
             ref={this.rowsDivRef}
-            onScroll={this.onScroll.bind(this)}
-            onMouseDown={this.onMouseDown.bind(this)}>
+            onClick={this.handleClick.bind(this)}
+            onMouseMove={this.handleMouseMove.bind(this)}
+            onScroll={this.handleScroll.bind(this)}
+            onMouseDown={this.handleMouseDown.bind(this)}>
 
             <MSAAlignCanvas
             ref={this.alignCanvasRef}
@@ -65,17 +67,46 @@ class MSAAlignRows extends Component {
     this.rowsDivRef.current.scrollTop = opts.scrollTop
   }
 
-  onMouseDown (evt) {
+  handleClick (evt) {
+    this.props.handleAlignCharClick (this.resolveAlignCoords (evt))
+  }
+
+  handleMouseMove (evt) {
+    const coords = this.resolveAlignCoords (evt)
+    if (!this.lastCoords || coords.row !== this.lastCoords.row || coords.column !== this.lastCoords.column) {
+      this.props.handleAlignCharMouseOut (this.lastCoords)
+      this.props.handleAlignCharMouseOver (coords)
+      this.lastCoords = coords
+    }
+  }
+
+  handleMouseDown (evt) {
     this.props.handleMouseDown (evt)
   }
 
-  onClick (evt) {
-    this.props.handleClick (evt)
-  }
-
-  onScroll (evt) {
+  handleScroll (evt) {
     this.props.handleScroll (this.rowsDivRef.current.scrollLeft,
                              this.rowsDivRef.current.scrollTop)
+  }
+
+  resolveAlignCoords (evt) {
+    const { treeIndex, alignIndex, treeLayout, alignLayout, data } = this.props
+    const { rowData } = data
+    const x = parseInt (evt.nativeEvent.offsetX),
+          y = parseInt (evt.nativeEvent.offsetY)
+    let row, column
+    for (row = 0; row < treeIndex.nodes.length - 1; ++row)
+      if (treeLayout.rowY[row] <= y && treeLayout.rowY[row] + treeLayout.rowHeight[row] > y)
+        break
+    for (column = 0; column < alignIndex.columns - 1; ++column)
+      if (alignLayout.colX[column] <= x && alignLayout.colX[column] + alignLayout.colWidth[column] > x)
+        break
+    const node = treeIndex.nodes[row],
+          colToSeqPos = alignIndex.alignColToSeqPos[node],
+          seqPos = colToSeqPos && colToSeqPos[column],
+          seq = rowData[node],
+          c = seq && seq[column]
+    return { row, column, node, seqPos, c }
   }
 }
 
