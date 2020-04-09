@@ -158,7 +158,7 @@ class App extends Component {
       nodeHandleFillStyle: 'white',
       collapsedNodeHandleFillStyle: 'black',
       rowConnectorDash: [2,2],
-      structureConfig: { width: 300, height: 300 },
+      structure: { width: 300, height: 300 },
       handler: {},
       colorScheme: this.defaultColorScheme()
     } }

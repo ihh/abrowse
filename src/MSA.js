@@ -4,7 +4,7 @@ import { extend } from 'lodash';
 import MSATree from './MSATree';
 import MSAAlignNames from './MSAAlignNames';
 import MSAAlignRows from './MSAAlignRows';
-import MSAStructs from './MSAStructs';
+import MSAStructPanel from './MSAStructPanel';
 
 class MSA extends Component {
   constructor(props) {
@@ -87,7 +87,7 @@ class MSA extends Component {
     const alignChars = alignIndex.chars
     let charWidth = 0, charMetrics = {}
     alignChars.forEach ((c) => {
-      let measureCanvas = this.create ('canvas', null, { width: genericRowHeight, height: genericRowHeight })
+      let measureCanvas = this.create ('canvas', null, null, { width: genericRowHeight, height: genericRowHeight })
       let measureContext = measureCanvas.getContext('2d')
       measureContext.font = charFont
       charMetrics[c] = measureContext.measureText (c)
@@ -115,9 +115,11 @@ class MSA extends Component {
     return { charMetrics, charWidth, charHeight, colX, colWidth, computedColScale, alignWidth: nextColX }
   }
 
-  // helper to create DOM element for measurement purposes
-  create (type, styles, attrs) {
+  // helper to create DOM element (for measurement purposes, or non-React components)
+  create (type, parent, styles, attrs) {
     const element = document.createElement (type)
+    if (parent)
+      parent.appendChild (element)
     if (attrs)
       Object.keys(attrs).filter ((attr) => typeof(attrs[attr]) !== 'undefined').forEach ((attr) => element.setAttribute (attr, attrs[attr]))
     if (styles)
@@ -137,11 +139,11 @@ class MSA extends Component {
     return (
         <div className="MSA"
       ref={this.msaRef}
-      onMouseDown={this.handleMouseDown.bind(this)}
       style={{ width: this.props.config.containerWidth,
                height: this.props.config.containerHeight }}>
 
         <div className="MSA-tree-alignment"
+      onMouseDown={this.handleMouseDown.bind(this)}
       style={{ width: this.props.config.containerWidth,
                height: treeLayout.treeAlignHeight }}>
 
@@ -166,6 +168,7 @@ class MSA extends Component {
       alignLayout={alignLayout}
       computedView={computedView}
       scrollTop={this.state.scrollTop}
+      handleNameClick={this.handleNameClick.bind(this)}
         />
       
         <MSAAlignRows
@@ -189,9 +192,11 @@ class MSA extends Component {
         />
         </div>
 
-        <MSAStructs
+        <MSAStructPanel
       config={this.props.config}
-      MSA={this} />
+      structures={this.state.view.structure.openStructures}
+      handleCloseStructure={this.handleCloseStructure.bind(this)}
+        />
 
       </div>
     )
@@ -216,6 +221,21 @@ class MSA extends Component {
     this.alignmentClientHeight = h
   }
 
+  handleNameClick (node) {
+    const { structure } = this.props.data
+    this.nStructs = (this.nStructs || 0) + 1
+    const newStructure = { node, structureInfo: structure[node], key: this.nStructs }
+    let view = this.state.view
+    view.structure.openStructures.push (newStructure)
+    this.setState ({ view })
+  }
+
+  handleCloseStructure (structure) {
+    let view = this.state.view
+    view.structure.openStructures = view.structure.openStructures.filter ((s) => s !== structure)
+    this.setState ({ view })
+  }
+  
   handleNodeClick (node) {
     if (this.scrolling) {
       this.scrolling = false

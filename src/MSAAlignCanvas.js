@@ -43,7 +43,9 @@ class MSAAlignCanvas extends Component {
   }
   
   setClientSize (clientWidth, clientHeight) {
-    this.setState ({ clientWidth, clientHeight })
+    if (clientWidth !== this.state.clientWidth
+        || clientHeight !== this.state.clientHeight)
+      this.setState ({ clientWidth, clientHeight })
   }
   
   componentDidMount() {

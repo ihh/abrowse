@@ -3,7 +3,8 @@ import React, { Component } from 'react';
 class MSAAlignNames extends Component {
 
   render() {
-    const { computedFontConfig, treeIndex, config, computedView, treeLayout } = this.props
+    const { data, computedFontConfig, treeIndex, config, computedView, treeLayout } = this.props
+    const structure = data.structure || {}
     const { nameDivWidth } = config
     const { nameFontName, nameFontSize } = computedFontConfig
 
@@ -28,7 +29,9 @@ class MSAAlignNames extends Component {
                         key={node}
                         style={style}>
                         <span>
-                        { node }
+                        { structure[node]
+                          ? (<button onClick={()=>this.props.handleNameClick(node)}> { node } </button>)
+                          : node }
                         </span>
                         </div>)
               }) }
