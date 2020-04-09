@@ -3,11 +3,14 @@ import { extend } from 'lodash';
 import colorSchemes from './colorSchemes'
 import './App.css';
 
+import { getAncestralReconstruction } from './reconstruction';
+// eslint-disable-next-line import/no-webpack-loader-syntax
+import getAncestralReconstructionWorker from 'workerize-loader!./reconstruction';
+
 import Stockholm from 'stockholm-js';
 import Newick from 'newick-js';
 import JukesCantor from 'jukes-cantor';
 import RapidNeighborJoining from 'neighbor-joining';
-import PhylogeneticLikelihood from 'phylogenetic-likelihood';
 
 import MSA from './MSA';
 
@@ -21,7 +24,7 @@ class App extends Component {
     const { genericRowHeight, nameFontSize, treeWidth, branchStrokeStyle, nodeHandleRadius, nodeHandleClickRadius, nodeHandleFillStyle, collapsedNodeHandleFillStyle, rowConnectorDash } = config
 
     // data
-    const data = this.getData (props.data, config)
+    const data = this.getData (extend ({}, props.data), config)
     const treeIndex = this.buildTreeIndex (data)
     const alignIndex = this.buildAlignmentIndex (data)
 
@@ -110,36 +113,44 @@ class App extends Component {
         data.root = getName (tree)
       }
     }
+    return data
+  }
+
+  componentDidMount() {
     // check if any nodes are missing; if so, do ancestral sequence reconstruction
-    const rowData = data.rowData
+    const { data } = this.state
+    const { branches } = data
+    let rowData = extend ({}, data.rowData)
     const missingAncestors = data.branches.filter ((b) => typeof(rowData[b[0]]) === 'undefined').length
     if (missingAncestors) {
-      console.warn ('Reconstructing ancestral sequences...')
-      const alphSize = 20  // assume for ancestral reconstruction purposes these are protein sequences; if not we'll need to pass a different model into getNodePostProfiles
-      const maxEntropy = Math.log(alphSize) / Math.log(2)
-      const gapChar = '-', deletionRate = .001
-      const model = PhylogeneticLikelihood.models.makeGappedModel ({ model: PhylogeneticLikelihood.models[PhylogeneticLikelihood.defaultModel],
-                                                                     deletionRate,
-                                                                     gapChar })
-      const { nodeProfile }
-            = PhylogeneticLikelihood.getNodePostProfiles ({ branchList: data.branches,
-                                                            nodeSeq: data.rowData,
-                                                            postProbThreshold: .01,
-                                                            model,
-                                                            defaultGapChar: gapChar })
-      Object.keys(nodeProfile).forEach ((node) => {
-        rowData[node] = nodeProfile[node].map ((charProb) => {
-          if (charProb[gapChar] >= .5)
-            return gapChar
-          const chars = Object.keys(charProb).filter ((c) => c !== gapChar).sort ((a, b) => charProb[a] - charProb[b])
-          const norm = chars.reduce ((psum, c) => psum + charProb[c], 0)
-          const probs = chars.map ((c) => charProb[c] / norm)
-          const entropy = probs.reduce ((s, p) => s - p * Math.log(p), 0) / Math.log(2)
-          return chars.map ((c, n) => [c, probs[n] * (maxEntropy - entropy) / maxEntropy])
-        })
-      })
+      if (window.Worker) {
+        console.warn ('Reconstructing ancestral sequences in web worker...')
+        let instance = getAncestralReconstructionWorker()
+        instance.getAncestralReconstruction ({ branches, rowData })
+          .then ((ancestralRowData) => {
+            console.warn ('Ancestral sequence reconstruction complete')
+            this.incorporateAncestralReconstruction (ancestralRowData)
+          })
+      } else {
+        console.warn ('Reconstructing ancestral sequences...')
+        getAncestralReconstruction (branches, rowData)
+          .then ((ancestralRowData) => {
+            this.incorporateAncestralReconstruction (ancestralRowData)
+          })
+      }
     }
-    return data
+  }
+
+  fn2workerURL (fn) {
+    const blob = new Blob(['('+fn.toString()+')()'], {type: 'application/javascript'})
+    return URL.createObjectURL(blob)
+  }
+  
+  incorporateAncestralReconstruction (ancestralRowData) {
+    const { data } = this.state
+    const rowData = extend ({}, data.rowData, ancestralRowData)
+    extend (data, { rowData })
+    this.setState ({ data })
   }
 
   defaultColorScheme() { return 'maeditor' }
@@ -273,9 +284,9 @@ class App extends Component {
     return (
         <div className="App">
         <MSA
+      data={this.state.data}
       isGapChar={this.isGapChar.bind(this)}
       config={this.state.config}
-      data={this.state.data}
       view={this.state.view}
       treeIndex={this.state.treeIndex}
       alignIndex={this.state.alignIndex}
