@@ -146,11 +146,11 @@ class MSA extends Component {
     
     return (
         <div className="MSA"
-      ref={this.msaRef}
       style={{ width: this.props.config.containerWidth,
                height: this.props.config.containerHeight }}>
 
         <div className="MSA-tree-alignment"
+      ref={this.msaRef}
       onMouseDown={this.handleMouseDown.bind(this)}
       onMouseLeave={this.removeLabelFromStructuresOnMouseout.bind(this)}
       style={{ width: this.props.config.containerWidth,
