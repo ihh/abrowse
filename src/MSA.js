@@ -19,6 +19,7 @@ class MSA extends Component {
                          { view });
 
     this.rowsRef = React.createRef()
+    this.msaRef = React.createRef()
   }
 
   initialView() {
@@ -136,6 +137,7 @@ class MSA extends Component {
     
     return (
         <div className="MSA"
+      ref={this.msaRef}
       onMouseDown={this.handleMouseDown.bind(this)}
       style={{ width: this.state.config.containerWidth,
                height: this.state.config.containerHeight }}>
@@ -200,12 +202,14 @@ class MSA extends Component {
     window.addEventListener ('mouseleave', this.handleMouseLeave.bind(this))
     window.addEventListener ('mouseup', this.handleMouseUp.bind(this))
     window.addEventListener ('mousemove', this.handleMouseMove.bind(this))
+    this.msaRef.current.addEventListener ('mousewheel', this.handleMouseWheel.bind(this))
   }
 
   componentWillUnmount() {
     window.removeEventListener ('mouseleave', this.handleMouseLeave.bind(this))
     window.removeEventListener ('mouseup', this.handleMouseUp.bind(this))
     window.removeEventListener ('mousemove', this.handleMouseMove.bind(this))
+    this.msaRef.current.removeEventListener ('mousewheel', this.handleMouseWheel.bind(this))
   }
 
   setAlignmentClientSize (w, h) {
@@ -287,6 +291,16 @@ class MSA extends Component {
       this.setState ({ alignScrollLeft, scrollTop })
   }
 
+  handleMouseWheel (evt) {
+    if (evt.deltaY) {
+      evt.preventDefault()
+      this.requestAnimationFrame (() => {
+        this.setState ({ alignScrollLeft: this.incAlignScrollLeft (evt.deltaX),
+                         scrollTop: this.incScrollTop (evt.deltaY) })
+      })
+    }
+  }
+
   handleMouseDown (evt) {
     this.mouseDown = true
     this.lastY = evt.pageY
@@ -326,7 +340,15 @@ class MSA extends Component {
     this.alignMouseDown = false
     this.mouseDown = false
   }
-  
+
+  incAlignScrollLeft (dx) {
+    return Math.max (0, Math.min (this.alignWidth - this.alignmentClientWidth, this.state.alignScrollLeft + dx))
+  }
+
+  incScrollTop (dy) {
+    return Math.max (0, Math.min (this.treeHeight - this.alignmentClientHeight, this.state.scrollTop + dy))
+  }
+
   handleMouseMove (evt) {
     if (this.alignMouseDown || this.mousedown)
       evt.preventDefault()
@@ -335,7 +357,7 @@ class MSA extends Component {
     if (this.alignMouseDown) {
       const dx = evt.pageX - this.lastX
       if (dx) {
-        alignScrollLeft = Math.max (0, Math.min (this.alignWidth - this.alignmentClientWidth, alignScrollLeft - dx))
+        alignScrollLeft = this.incAlignScrollLeft (-dx)
         this.panning = true
         updated = true
       }
@@ -345,22 +367,25 @@ class MSA extends Component {
     if (this.mouseDown) {
       const dy = evt.pageY - this.lastY
       if (dy) {
-        scrollTop = Math.max (0, Math.min (this.treeHeight - this.alignmentClientHeight, scrollTop - dy))
+        scrollTop = this.incScrollTop (-dy)
         this.scrolling = true
         updated = true
       }
     } else
       this.scrolling = false
 
-    if (updated) {
-      if (this.animationTimeout)
-        window.cancelAnimationFrame (this.animationTimeout)
-      this.animationTimeout = window.requestAnimationFrame (() => {
+    if (updated)
+      this.requestAnimationFrame (() => {
         this.setState ({ alignScrollLeft, scrollTop })
         this.lastX = evt.pageX
         this.lastY = evt.pageY
       })
-    }
+  }
+
+  requestAnimationFrame (callback) {
+    if (this.animationTimeout)
+      window.cancelAnimationFrame (this.animationTimeout)
+    this.animationTimeout = window.requestAnimationFrame (callback)
   }
 }
 
