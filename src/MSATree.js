@@ -45,6 +45,7 @@ class MSATree extends Component {
     ctx.globalAlpha = 1
     ctx.clearRect (0, 0, treeCanvas.width, treeCanvas.height)
     ctx.strokeStyle = branchStrokeStyle
+    ctx.fillStyle = branchStrokeStyle
     ctx.lineWidth = treeStrokeWidth
     const makeNodeHandlePath = (node) => {
       ctx.beginPath()

@@ -212,6 +212,11 @@ class MSA extends Component {
   }
 
   handleNodeClick (node) {
+    if (this.scrolling) {
+      this.scrolling = false
+      return
+    }
+
     const { treeIndex, alignIndex } = this.props
     const { collapsed, nodeScale, columnScale, forceDisplayNode, columnVisible } = this.getComputedView()
 
