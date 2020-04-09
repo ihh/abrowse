@@ -113,6 +113,7 @@ class App extends Component {
     const rowData = data.rowData
     const missingAncestors = data.branches.filter ((b) => typeof(rowData[b[0]]) === 'undefined').length
     if (missingAncestors) {
+      console.warn ('Reconstructing ancestral sequences...')
       const alphSize = 20  // assume for ancestral reconstruction purposes these are protein sequences; if not we'll need to pass a different model into getNodePostProfiles
       const maxEntropy = Math.log(alphSize) / Math.log(2)
       const gapChar = '-', deletionRate = .001

@@ -224,7 +224,11 @@ class MSA extends Component {
     }
 
     const { treeIndex, alignIndex } = this.props
-    const { collapsed, nodeScale, columnScale, forceDisplayNode, columnVisible } = this.getComputedView()
+    const computedView = this.getComputedView()
+    const { collapsed, nodeScale, columnScale, forceDisplayNode, columnVisible } = computedView
+
+    const alignLayout = this.layoutAlignment (computedView)
+    const left = this.state.alignScrollLeft, right = left + this.alignmentClientWidth
 
     const collapseAnimationFrames = 10
     const collapseAnimationDuration = 200
@@ -241,47 +245,57 @@ class MSA extends Component {
     const finalForceDisplayNode = extend ({}, forceDisplayNode)
     finalForceDisplayNode[node] = !wasCollapsed
     const finalComputedView = this.getComputedView ({ collapsed: finalCollapsed, forceDisplayNode: finalForceDisplayNode })
-    let newlyVisibleColumns = [], newlyHiddenColumns = []
-    for (let col = 0; col < alignIndex.columns; ++col)
+    let newlyVisibleColumns = [], newlyHiddenColumns = [], persistingVisibleColumns = []
+    for (let col = 0; col < alignIndex.columns; ++col) {
       if (finalComputedView.columnVisible[col] !== columnVisible[col])
         (finalComputedView.columnVisible[node] ? newlyVisibleColumns : newlyHiddenColumns).push (col)
+      const colX = alignLayout.colX[col], colWidth = alignLayout.colWidth[col]
+      if (columnVisible[col] && finalComputedView.columnVisible[col] && colX >= left && colX + colWidth < right)
+        persistingVisibleColumns.push (col)
+    }
+    const centroidMinusScroll = this.centroidOfColumns (persistingVisibleColumns, alignLayout) - this.state.alignScrollLeft
 
     let lastFrameTime = Date.now()
     const expectedTimeBetweenFrames = collapseAnimationDuration / collapseAnimationFrames
     const drawAnimationFrame = () => {
-      let disableTreeEvents, animating, newCollapsed = collapsed
-      if (framesLeft) {
-        const scale = (wasCollapsed ? (collapseAnimationFrames + 1 - framesLeft) : framesLeft) / (collapseAnimationFrames + 1)
-        treeIndex.descendants[node].forEach ((desc) => { nodeScale[desc] = scale })
-        nodeScale[node] = 1 - scale
-        newlyHiddenColumns.forEach ((col) => columnScale[col] = scale)
-        newlyVisibleColumns.forEach ((col) => columnScale[col] = 1 - scale)
-        forceDisplayNode[node] = true
-        disableTreeEvents = true
-        animating = true
-      } else {
-        treeIndex.descendants[node].forEach ((desc) => { delete nodeScale[desc] })
-        delete nodeScale[node]
-        newlyHiddenColumns.forEach ((col) => delete columnScale[col])
-        newlyVisibleColumns.forEach ((col) => delete columnScale[col])
-        forceDisplayNode[node] = !wasCollapsed
-        newCollapsed = finalCollapsed
-        disableTreeEvents = false
-        animating = false
-      }
-      this.setState ({ view: { collapsed: newCollapsed, forceDisplayNode, nodeScale, columnScale, disableTreeEvents, animating } })
-
-      if (framesLeft) {
-        const currentTime = Date.now(),
-              timeSinceLastFrame = currentTime - lastFrameTime,
-              timeToNextFrame = Math.max (0, expectedTimeBetweenFrames - timeSinceLastFrame),
-              frameSkip = Math.min (collapseAnimationMaxFrameSkip, Math.ceil (timeSinceLastFrame / expectedTimeBetweenFrames))
-        framesLeft = Math.max (0, framesLeft - frameSkip)
-        lastFrameTime = currentTime
-        setTimeout (drawAnimationFrame, timeToNextFrame)
-      }
+      window.requestAnimationFrame (() => {
+        let disableTreeEvents, animating, newCollapsed = collapsed
+        if (framesLeft) {
+          const scale = (wasCollapsed ? (collapseAnimationFrames + 1 - framesLeft) : framesLeft) / (collapseAnimationFrames + 1)
+          treeIndex.descendants[node].forEach ((desc) => { nodeScale[desc] = scale })
+          nodeScale[node] = 1 - scale
+          newlyHiddenColumns.forEach ((col) => columnScale[col] = scale)
+          newlyVisibleColumns.forEach ((col) => columnScale[col] = 1 - scale)
+          forceDisplayNode[node] = true
+          disableTreeEvents = true
+          animating = true
+        } else {
+          treeIndex.descendants[node].forEach ((desc) => { delete nodeScale[desc] })
+          delete nodeScale[node]
+          newlyHiddenColumns.forEach ((col) => delete columnScale[col])
+          newlyVisibleColumns.forEach ((col) => delete columnScale[col])
+          forceDisplayNode[node] = !wasCollapsed
+          newCollapsed = finalCollapsed
+          disableTreeEvents = false
+          animating = false
+        }
+        const view = { collapsed: newCollapsed, forceDisplayNode, nodeScale, columnScale, disableTreeEvents, animating }
+        const computedView = this.getComputedView (view), alignLayout = this.layoutAlignment (computedView)
+        const alignScrollLeft = this.boundAlignScrollLeft (this.centroidOfColumns (persistingVisibleColumns, alignLayout) - centroidMinusScroll)
+        this.setState ({ alignScrollLeft, view })
+        
+        if (framesLeft) {
+          const currentTime = Date.now(),
+                timeSinceLastFrame = currentTime - lastFrameTime,
+                timeToNextFrame = Math.max (0, expectedTimeBetweenFrames - timeSinceLastFrame),
+                frameSkip = Math.min (collapseAnimationMaxFrameSkip, Math.ceil (timeSinceLastFrame / expectedTimeBetweenFrames))
+          framesLeft = Math.max (0, framesLeft - frameSkip)
+          lastFrameTime = currentTime
+          setTimeout (drawAnimationFrame, timeToNextFrame)
+        }
+      })
     }
-
+                                    
     drawAnimationFrame (collapseAnimationFrames)
   }
 
@@ -294,11 +308,12 @@ class MSA extends Component {
   handleMouseWheel (evt) {
     // nonzero deltaMode is Firefox, means deltaY is in lines instead of pixels
     // can be corrected for e.g. https://stackoverflow.com/questions/20110224/what-is-the-height-of-a-line-in-a-wheel-event-deltamode-dom-delta-line
-    if (evt.deltaY !== 0 && evt.deltaMode === 0) {
+    if (evt.deltaY !== 0) {
+      const deltaY = evt.deltaY * (evt.deltaMode ? this.state.config.genericRowHeight : 1)
       evt.preventDefault()
       this.requestAnimationFrame (() => {
         this.setState ({ alignScrollLeft: this.incAlignScrollLeft (evt.deltaX),
-                         scrollTop: this.incScrollTop (evt.deltaY) })
+                         scrollTop: this.incScrollTop (deltaY) })
       })
     }
   }
@@ -343,12 +358,24 @@ class MSA extends Component {
     this.mouseDown = false
   }
 
+  centroidOfColumns (cols, alignLayout) {
+    return cols.reduce ((sum, col) => sum + alignLayout.colX[col] + (alignLayout.colWidth[col] / 2), 0) / cols.length
+  }
+
   incAlignScrollLeft (dx) {
-    return Math.max (0, Math.min (this.alignWidth - this.alignmentClientWidth, this.state.alignScrollLeft + dx))
+    return this.boundAlignScrollLeft (this.state.alignScrollLeft + dx)
   }
 
   incScrollTop (dy) {
-    return Math.max (0, Math.min (this.treeHeight - this.alignmentClientHeight, this.state.scrollTop + dy))
+    return this.boundScrollTop (this.state.scrollTop + dy)
+  }
+
+  boundAlignScrollLeft (x) {
+    return Math.max (0, Math.min (this.alignWidth - this.alignmentClientWidth, x))
+  }
+
+  boundScrollTop (y) {
+    return Math.max (0, Math.min (this.treeHeight - this.alignmentClientHeight, y))
   }
 
   handleMouseMove (evt) {

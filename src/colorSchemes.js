@@ -49,9 +49,9 @@ export default {
     L: 'blue',
     M: 'blue',
     V: 'blue',
-    F: 'lilac',
-    W: 'lilac',
-    Y: 'lilac',
+    F: '#c8a2c8',  // lilac
+    W: '#c8a2c8',  // lilac
+    Y: '#c8a2c8',  // lilac
     H: 'darkblue',
     K: 'orange',
     R: 'orange',
