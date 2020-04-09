@@ -202,7 +202,7 @@ class MSA extends Component {
     window.addEventListener ('mouseleave', this.handleMouseLeave.bind(this))
     window.addEventListener ('mouseup', this.handleMouseUp.bind(this))
     window.addEventListener ('mousemove', this.handleMouseMove.bind(this))
-    this.msaRef.current.addEventListener ('wheel', this.handleMouseWheel.bind(this))
+    this.msaRef.current.addEventListener ('wheel', this.handleMouseWheel.bind(this), { passive: false })
   }
 
   componentWillUnmount() {

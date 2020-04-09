@@ -91,6 +91,7 @@ class App extends Component {
         traverse (newickTree)
         data.root = getName (newickTree)
       } else {  // no Newick tree was specified, so build a quick-and-dirty distance matrix with Jukes-Cantor, and get a tree by neighbor-joining
+        console.warn ('Estimating phylogenetic tree...')
         const taxa = Object.keys(data.rowData).sort(), seqs = taxa.map ((taxon) => data.rowData[taxon])
         const distMatrix = JukesCantor.calcDistanceMatrix (seqs)
         const rnj = new RapidNeighborJoining.RapidNeighborJoining (distMatrix, taxa.map ((name) => ({ name })))
