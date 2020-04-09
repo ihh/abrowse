@@ -285,30 +285,30 @@ class MSA extends Component {
     let lastFrameTime = Date.now()
     const expectedTimeBetweenFrames = this.collapseAnimationDuration() / collapseAnimationFrames
     const drawAnimationFrame = () => {
+      let disableTreeEvents, animating, newCollapsed = collapsed
+      if (framesLeft) {
+        const scale = (wasCollapsed ? (collapseAnimationFrames + 1 - framesLeft) : framesLeft) / (collapseAnimationFrames + 1)
+        treeIndex.descendants[node].forEach ((desc) => { nodeScale[desc] = scale })
+        nodeScale[node] = 1 - scale
+        newlyHiddenColumns.forEach ((col) => columnScale[col] = scale)
+        newlyVisibleColumns.forEach ((col) => columnScale[col] = 1 - scale)
+        forceDisplayNode[node] = true
+        disableTreeEvents = true
+        animating = true
+      } else {
+        treeIndex.descendants[node].forEach ((desc) => { delete nodeScale[desc] })
+        delete nodeScale[node]
+        newlyHiddenColumns.forEach ((col) => delete columnScale[col])
+        newlyVisibleColumns.forEach ((col) => delete columnScale[col])
+        forceDisplayNode[node] = !wasCollapsed
+        newCollapsed = finalCollapsed
+        disableTreeEvents = false
+        animating = false
+      }
+      const view = extend ({}, this.state.view, { collapsed: newCollapsed, forceDisplayNode, nodeScale, columnScale, disableTreeEvents, animating })
+      const computedView = this.getComputedView (view), alignLayout = this.layoutAlignment (computedView)
+      const alignScrollLeft = this.boundAlignScrollLeft (this.centroidOfColumns (persistingVisibleColumns, alignLayout) - centroidMinusScroll)
       window.requestAnimationFrame (() => {
-        let disableTreeEvents, animating, newCollapsed = collapsed
-        if (framesLeft) {
-          const scale = (wasCollapsed ? (collapseAnimationFrames + 1 - framesLeft) : framesLeft) / (collapseAnimationFrames + 1)
-          treeIndex.descendants[node].forEach ((desc) => { nodeScale[desc] = scale })
-          nodeScale[node] = 1 - scale
-          newlyHiddenColumns.forEach ((col) => columnScale[col] = scale)
-          newlyVisibleColumns.forEach ((col) => columnScale[col] = 1 - scale)
-          forceDisplayNode[node] = true
-          disableTreeEvents = true
-          animating = true
-        } else {
-          treeIndex.descendants[node].forEach ((desc) => { delete nodeScale[desc] })
-          delete nodeScale[node]
-          newlyHiddenColumns.forEach ((col) => delete columnScale[col])
-          newlyVisibleColumns.forEach ((col) => delete columnScale[col])
-          forceDisplayNode[node] = !wasCollapsed
-          newCollapsed = finalCollapsed
-          disableTreeEvents = false
-          animating = false
-        }
-        const view = extend ({}, this.state.view, { collapsed: newCollapsed, forceDisplayNode, nodeScale, columnScale, disableTreeEvents, animating })
-        const computedView = this.getComputedView (view), alignLayout = this.layoutAlignment (computedView)
-        const alignScrollLeft = this.boundAlignScrollLeft (this.centroidOfColumns (persistingVisibleColumns, alignLayout) - centroidMinusScroll)
         this.setState ({ alignScrollLeft, view })
         
         if (framesLeft) {
