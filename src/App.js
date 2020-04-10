@@ -23,11 +23,6 @@ class App extends Component {
     const config = extend (this.defaultConfig(), props.config || {})
     const { genericRowHeight, nameFontSize, treeWidth, branchStrokeStyle, nodeHandleRadius, nodeHandleClickRadius, nodeHandleFillStyle, collapsedNodeHandleFillStyle, rowConnectorDash } = config
 
-    // data
-    const data = this.getData (extend ({}, props.data), config)
-    const treeIndex = this.buildTreeIndex (data)
-    const alignIndex = this.buildAlignmentIndex (data)
-
     // tree configuration
     const treeStrokeWidth = 1
     const nodeHandleStrokeStyle = branchStrokeStyle
@@ -45,13 +40,19 @@ class App extends Component {
     
     // state
     this.state = { config,
-                   data,
-                   treeIndex,
-                   alignIndex,
                    computedTreeConfig,
                    computedFontConfig }
+
+    extend (this.state, this.selectDataset (props.data))
   }
 
+  selectDataset (suppliedData) {
+    const data = this.getData (extend ({}, suppliedData || {}), this.state.config)
+    const treeIndex = this.buildTreeIndex (data)
+    const alignIndex = this.buildAlignmentIndex (data)
+    return { data, treeIndex, alignIndex }
+  }
+  
   // method to get data & build tree if necessary
   get pdbRegex() { return /PDB; +(\S+) +(\S); ([0-9]+)/; }   /* PFAM format for embedding PDB IDs in Stockholm files */
   getData (data, config) {
@@ -118,26 +119,36 @@ class App extends Component {
   }
 
   componentDidMount() {
+    this.reconstructMissingNodes()
+  }
+  
+  componentDidUpdate() {
+    this.reconstructMissingNodes()
+  }
+
+  reconstructMissingNodes() {
     // check if any nodes are missing; if so, do ancestral sequence reconstruction
     const { data } = this.state
-    const { branches } = data
-    let rowData = extend ({}, data.rowData)
-    const missingAncestors = data.branches.filter ((b) => typeof(rowData[b[0]]) === 'undefined').length
-    if (missingAncestors) {
-      if (window.Worker) {
-        console.warn ('Reconstructing ancestral sequences in web worker...')
-        let instance = getAncestralReconstructionWorker()
-        instance.getAncestralReconstruction ({ branches, rowData })
-          .then ((ancestralRowData) => {
-            console.warn ('Ancestral sequence reconstruction complete')
-            this.incorporateAncestralReconstruction (ancestralRowData)
-          })
-      } else {
-        console.warn ('Reconstructing ancestral sequences...')
-        getAncestralReconstruction ({ branches, rowData })
-          .then ((ancestralRowData) => {
-            this.incorporateAncestralReconstruction (ancestralRowData)
-          })
+    if (data) {
+      const { branches } = data
+      let rowData = extend ({}, data.rowData)
+      const missingAncestors = data.branches.filter ((b) => typeof(rowData[b[0]]) === 'undefined').length
+      if (missingAncestors) {
+        if (window.Worker) {
+          console.warn ('Reconstructing ancestral sequences in web worker...')
+          let instance = getAncestralReconstructionWorker()
+          instance.getAncestralReconstruction ({ branches, rowData })
+            .then ((ancestralRowData) => {
+              console.warn ('Ancestral sequence reconstruction complete')
+              this.incorporateAncestralReconstruction (ancestralRowData)
+            })
+        } else {
+          console.warn ('Reconstructing ancestral sequences...')
+          getAncestralReconstruction ({ branches, rowData })
+            .then ((ancestralRowData) => {
+              this.incorporateAncestralReconstruction (ancestralRowData)
+            })
+        }
       }
     }
   }
@@ -284,17 +295,29 @@ class App extends Component {
   render() {
     return (
         <div className="App">
+
+        <div className="MSA-appbar">
+        
+        { this.state.data.name &&
+          (<div className="MSA-appbar-title">
+           {this.state.data.name}
+           </div>) }
+
+      </div>
+
+      { this.state.data &&
         <MSA
-      data={this.state.data}
-      isGapChar={this.isGapChar.bind(this)}
-      config={this.state.config}
-      view={this.state.view}
-      treeIndex={this.state.treeIndex}
-      alignIndex={this.state.alignIndex}
-      computedTreeConfig={this.state.computedTreeConfig}
-      computedFontConfig={this.state.computedFontConfig}
-        />
-        </div>
+        data={this.state.data}
+        isGapChar={this.isGapChar.bind(this)}
+        config={this.state.config}
+        view={this.state.view}
+        treeIndex={this.state.treeIndex}
+        alignIndex={this.state.alignIndex}
+        computedTreeConfig={this.state.computedTreeConfig}
+        computedFontConfig={this.state.computedFontConfig}
+        /> }
+
+      </div>
     );
   }
 }

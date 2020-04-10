@@ -106,8 +106,9 @@ class MSAAlignRows extends Component {
           colToSeqPos = alignIndex.alignColToSeqPos[node],
           seqPos = colToSeqPos && colToSeqPos[column],
           seq = rowData[node],
-          c = seq && seq[column]
-    return { row, column, node, seqPos, c }
+          c = seq && seq[column],
+          isGap = this.props.isGapChar(c)
+    return { row, column, node, seqPos, c, isGap }
   }
 }
 

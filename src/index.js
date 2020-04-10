@@ -6,6 +6,7 @@ import * as serviceWorker from './serviceWorker';
 
 const opts = {
   data: {
+    name: "Spike_rec_bind",
     "branches": [
       ["node3","SPIKE_CVP67/326-526",0.0044021],
       ["node3","Q2QKN3_9BETC/326-526",0.000545546],

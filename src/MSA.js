@@ -6,8 +6,6 @@ import MSAAlignNames from './MSAAlignNames';
 import MSAAlignRows from './MSAAlignRows';
 import MSAStructPanel from './MSAStructPanel';
 
-import pv from 'bio-pv';
-
 class MSA extends Component {
   constructor(props) {
     super(props);
@@ -21,6 +19,7 @@ class MSA extends Component {
 
     this.rowsRef = React.createRef()
     this.msaRef = React.createRef()
+    this.structRef = React.createRef()
   }
 
   // config/defaults
@@ -34,9 +33,6 @@ class MSA extends Component {
       animating: false,
       structure: { openStructures: [] }
     } }
-
-  mouseoverLabelDelay() { return 100 }
-  redrawStructureDelay() { return 500 }
 
   collapseAnimationFrames() { return 10 }
   collapseAnimationDuration() { return 200 }
@@ -154,7 +150,7 @@ class MSA extends Component {
         <div className="MSA-tree-alignment"
       ref={this.msaRef}
       onMouseDown={this.handleMouseDown.bind(this)}
-      onMouseLeave={this.removeLabelFromStructuresOnMouseout.bind(this)}
+      onMouseLeave={()=>this.structRef.current.removeLabelFromStructuresOnMouseout()}
       style={{ width: this.props.config.containerWidth,
                height: treeLayout.treeAlignHeight }}>
 
@@ -190,6 +186,7 @@ class MSA extends Component {
       computedFontConfig={this.props.computedFontConfig}
       treeIndex={this.props.treeIndex}
       alignIndex={this.props.alignIndex}
+      isGapChar={this.props.isGapChar}
       treeLayout={treeLayout}
       alignLayout={alignLayout}
       setClientSize={this.setAlignmentClientSize.bind(this)}
@@ -204,7 +201,9 @@ class MSA extends Component {
         </div>
 
         <MSAStructPanel
-      config={this.props.config}
+      ref={this.structRef}
+      initConfig={this.props.config.structure}
+      alignIndex={this.props.alignIndex}
       structures={this.state.view.structure.openStructures}
       updateStructure={this.updateStructure.bind(this)}
       handleCloseStructure={this.handleCloseStructure.bind(this)}
@@ -380,91 +379,16 @@ class MSA extends Component {
 
   handleAlignCharMouseOver (coords) {
     if (!this.panning && !this.scrolling) {
-      this.addLabelToStructuresOnMouseover (coords)
+      this.structRef.current.addLabelToStructuresOnMouseover (coords)
 //      console.warn('mouseover',coords)
     }
   }
 
   handleAlignCharMouseOut (coords) {
     if (!this.panning && !this.scrolling) {
-      this.removeLabelFromStructuresOnMouseout()
+      this.structRef.current.removeLabelFromStructuresOnMouseout()
 //      console.warn('mouseout',coords)
     }
-  }
-
-  addLabelToStructuresOnMouseover (coords) {
-    this.setTimer ('mouseover', this.mouseoverLabelDelay(), () => {
-      const labelConfig = this.props.config.structure.label || { font: 'sans-serif',
-                                                                 fontSize : 12,
-                                                                 fontColor: '#f62',
-                                                                 fillStyle: 'white',
-                                                                 backgroundAlpha : 0.4 }
-      const atomHighlightColor = this.props.config.structure.atomHighlightColor || 'red'
-      this.state.view.structure.openStructures.forEach ((s) => {
-        if (coords.c && !this.props.isGapChar(coords.c) && s.viewer) {
-          const colToSeqPos = this.props.alignIndex.alignColToSeqPos[s.node]
-          if (colToSeqPos) {
-            const seqPos = colToSeqPos[coords.column]
-            this.removeMouseoverLabels (s)
-            s.structureInfo.chains.forEach ((chainInfo) => {
-              const pdbSeqPos = seqPos + (typeof(chainInfo.startPos) === 'undefined' ? 1 : chainInfo.startPos)
-              const pdbChain = chainInfo.chain
-              const residues = s.pdb.residueSelect ((res) => {
-                return res.num() === pdbSeqPos
-                  && (typeof(pdbChain) === 'undefined' || res.chain().name() === pdbChain)
-              })
-              if (residues) {
-                residues.eachResidue ((res) => {
-                  const label = 'mouseover' + (s.mouseoverLabel.length + 1)
-                  if (this.state.config.structure.showMouseoverLabel)
-                    s.viewer.label (label, res.qualifiedName(), res.centralAtom().pos(), labelConfig)
-                  res.atoms().forEach ((atom) => {
-                    if (!s.trueAtomColor[atom]) {
-                      const atomColor = [0, 0, 0, 0]
-                      s.geometry.getColorForAtom (atom, atomColor)
-                      s.trueAtomColor[atom.index()] = atomColor
-                      console.warn ('old color',atom.index(),atomColor)
-                    }
-                  })
-                  res.atoms().forEach ((atom) => this.setColorForAtom (s.geometry, atom, atomHighlightColor))
-                  s.mouseoverLabel.push ({ label, res })
-                })
-              }
-            })
-            this.requestRedrawStructure (s)
-          }
-        }
-      })
-    })
-  }
-
-  removeLabelFromStructuresOnMouseout() {
-    this.clearTimer ('mouseover')
-    this.state.view.structure.openStructures.forEach ((s) => {
-      if (this.removeMouseoverLabels (s))
-        this.requestRedrawStructure (s)
-    })
-  }
-
-  removeMouseoverLabels (structure) {
-    const hadLabels = structure.mouseoverLabel.length > 0
-    structure.mouseoverLabel.forEach ((labelInfo) => {
-      if (this.state.config.structure.showMouseoverLabel)
-        structure.viewer.rm (labelInfo.label)
-      labelInfo.res.atoms().forEach ((atom) => {
-        const trueColor = structure.trueAtomColor[atom.index()]
-        this.setColorForAtom (structure.geometry, atom, trueColor)
-        console.warn ('restoring color',atom.index(),trueColor)
-      })
-    })
-    structure.mouseoverLabel = []
-    return hadLabels
-  }
-
-  setColorForAtom (go, atom, color) {
-    let view = go.structure().createEmptyView();
-    view.addAtom (atom);
-    go.colorBy (pv.color.uniform(color), view);
   }
   
   handleMouseLeave() {
@@ -529,11 +453,6 @@ class MSA extends Component {
         this.lastX = evt.pageX
         this.lastY = evt.pageY
       })
-  }
-
-  // delayed request to redraw structure
-  requestRedrawStructure (structure) {
-    this.setTimer ('redraw', this.redrawStructureDelay(), () => structure.viewer.requestRedraw())
   }
 
   // request animation frame

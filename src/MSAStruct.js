@@ -16,8 +16,8 @@ class MSAStruct extends Component {
     const structureID = !wantStructure && this.props.structure.structureInfo.pdb
     return (<div
             className="MSA-structure"
-            style={{width: this.props.config.structure.width,
-                    height: this.props.config.structure.height}}
+            style={{width: this.props.config.width,
+                    height: this.props.config.height}}
             >
 
             <div className="MSA-structure-name">
@@ -77,14 +77,14 @@ class MSAStruct extends Component {
       this.loadStructure()
   }
 
-  handleSelectStructure (selection) {
-    this.props.updateStructure ({ structureInfo: selection.target.value })
+  handleSelectStructure (evt) {
+    this.props.updateStructure ({ structureInfo: evt.target.value })
   }
   
   loadStructure() {
     if (!this.props.structure.pdbFetchInitiated) {
       this.props.updateStructure ({ pdbFetchInitiated: true })
-      const structureConfig = this.props.config.structure
+      const structureConfig = this.props.config
       const pvConfig = this.getPvConfig (structureConfig)
       const viewer = pv.Viewer (this.pvDivRef.current, pvConfig)
       const loadFromPDB = !structureConfig.noRemoteStructures
@@ -98,10 +98,10 @@ class MSAStruct extends Component {
       pv.io.fetchPdb (pdbFilePath, (pdb) => {
         // display the protein as cartoon, coloring the secondary structure
         // elements in a rainbow gradient.
-        const geometry = viewer.cartoon('protein', pdb, { color : pv.color.ssSuccession() })
+        this.props.updateStructure ({ pdb, viewer })
+        this.props.setViewType()
         viewer.centerOn(pdb)
         viewer.autoZoom()
-        this.props.updateStructure ({ pdb, viewer, geometry })
       })
     }
   }
