@@ -102,13 +102,23 @@ const opts = {
     },
     structure: {
       'SPIKE_CVHSA/317-569': [{
-        pdbFile: '5wrg',
-        startPos: 317,
-        chain: 'A'
+        pdb: '5wrg',
+        chains: [{
+          startPos: 317,
+          chain: 'A'
+        }, {
+          startPos: 317,
+          chain: 'B'
+        }, {
+          startPos: 317,
+          chain: 'C'
+        }]
       }, {
-        pdbFile: '5xlr',
-        startPos: 317,
-        chain: 'A'
+        pdb: '5xlr',
+        chains: [{
+          startPos: 317,
+          chain: 'A'
+        }]
       }]
     }
   },

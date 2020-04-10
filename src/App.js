@@ -63,15 +63,16 @@ class App extends Component {
         data.rowData = stock.seqdata
         if (stock.gf.NH && !newickStr)  // did the Stockholm alignment include a tree?
           newickStr = stock.gf.NH.join('')
-        if (stock.gs.DR && (config.loadFromPDB || (config.structure && config.structure.loadFromPDB)))  // did the Stockholm alignment include links to PDB?
+        if (stock.gs.DR && !config.structure.noRemoteStructures)  // did the Stockholm alignment include links to PDB?
           Object.keys(stock.gs.DR).forEach ((node) => {
             stock.gs.DR[node].forEach ((dr) => {
               const match = this.pdbRegex.exec(dr)
-              if (match)
-                structure[node] = { pdbFile: match[1].toLowerCase(),
-                                    chain: match[2],
-                                    startPos: parseInt (match[3]),
-                                    loadFromPDB: true }
+              if (match) {
+                structure[node] = structure[node] || { pdb: match[1].toLowerCase(),
+                                                       chains: [] }
+                structure[node].chains.push ({ chain: match[2],
+                                               startPos: parseInt (match[3]) })
+              }
             })
           })
       } else if (data.fasta)  // was a FASTA-format alignment specified

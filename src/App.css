@@ -99,6 +99,7 @@
     right: 2px;
     font-size: small;
     z-index: 1;
+    background: rgba(255,255,255,.8);
 }
 
 .MSA-structure-label {
@@ -107,6 +108,7 @@
     left: 2px;
     font-size: small;
     z-index: 1;
+    background: rgba(255,255,255,.8);
 }
 
 .MSA-structure-top {

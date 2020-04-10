@@ -13,7 +13,7 @@ class MSAStruct extends Component {
 
   render() {
     const wantStructure = isArray(this.props.structure.structureInfo)
-    const structureID = !wantStructure && this.props.structure.structureInfo.pdbFile
+    const structureID = !wantStructure && this.props.structure.structureInfo.pdb
     return (<div
             className="MSA-structure"
             style={{width: this.props.config.structure.width,
@@ -39,7 +39,7 @@ class MSAStruct extends Component {
                   <MenuItem value='' disabled>
                   Select a structure
                   </MenuItem>
-                  {this.props.structure.structureInfo.map ((info, n) => (<MenuItem key={n} value={info}>{info.pdbFile}</MenuItem>))}
+                  {this.props.structure.structureInfo.map ((info, n) => (<MenuItem key={n} value={info}>{info.pdb}</MenuItem>))}
                   </Select>
                  ) }
             <div className="MSA-structure-close-button">
@@ -90,18 +90,18 @@ class MSAStruct extends Component {
       const loadFromPDB = !structureConfig.noRemoteStructures
       const pdbFilePath = ((loadFromPDB
                             ? this.pdbUrlPrefix()
-                            : (structureConfig.pdbFilePrefix || ''))
-                           + this.props.structure.structureInfo.pdbFile
+                            : (structureConfig.pdbPrefix || ''))
+                           + this.props.structure.structureInfo.pdb
                            + (loadFromPDB
                               ? this.pdbUrlSuffix()
-                              : (structureConfig.pdbFileSuffix || '')))
+                              : (structureConfig.pdbSuffix || '')))
       pv.io.fetchPdb (pdbFilePath, (pdb) => {
         // display the protein as cartoon, coloring the secondary structure
         // elements in a rainbow gradient.
-        viewer.cartoon('protein', pdb, { color : pv.color.ssSuccession() })
+        const geometry = viewer.cartoon('protein', pdb, { color : pv.color.ssSuccession() })
         viewer.centerOn(pdb)
         viewer.autoZoom()
-        this.props.updateStructure ({ pdb, viewer })
+        this.props.updateStructure ({ pdb, viewer, geometry })
       })
     }
   }
