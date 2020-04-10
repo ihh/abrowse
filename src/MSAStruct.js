@@ -1,5 +1,6 @@
 import React, { Component } from 'react';
-import Select from 'react-select';
+import { Select, MenuItem } from '@material-ui/core';
+import CloseIcon from '@material-ui/icons/Close';
 import { isArray } from 'lodash';
 import pv from 'bio-pv';
 
@@ -7,39 +8,49 @@ class MSAStruct extends Component {
 
   constructor(props) {
     super(props);
-
     this.pvDivRef = React.createRef()
   }
 
   render() {
+    const wantStructure = isArray(this.props.structure.structureInfo)
+    const structureID = !wantStructure && this.props.structure.structureInfo.pdbFile
     return (<div
             className="MSA-structure"
             style={{width: this.props.config.structure.width,
                     height: this.props.config.structure.height}}
             >
 
-            <div className="MSA-structure-top">
-            <div className="MSA-structure-label">
+            <div className="MSA-structure-name">
             {this.props.structure.node}
             </div>
+
+            { structureID
+              && (<div className="MSA-structure-label">
+                  {structureID}
+                  </div>) }
+
+            <div className="MSA-structure-top">
+            { wantStructure
+              && (<Select
+                  value=''
+                  displayEmpty
+                  onChange={this.handleSelectStructure.bind(this)}
+                  >
+                  <MenuItem value='' disabled>
+                  Select a structure
+                  </MenuItem>
+                  {this.props.structure.structureInfo.map ((info, n) => (<MenuItem key={n} value={info}>{info.pdbFile}</MenuItem>))}
+                  </Select>
+                 ) }
             <div className="MSA-structure-close-button">
-            <button onClick={this.handleClose.bind(this)}>
-            X</button>
+            <CloseIcon onClick={this.handleClose.bind(this)}/>
             </div>
             </div>
             
-            <div className="MSA-structure-main">
-            { isArray(this.props.structure.structureInfo)
-              && (<Select
-                  options={this.props.structure.structureInfo.map ((info) => { return { value: info, label: info.pdbFile } })}
-                  placeholder="Select a structure"
-                  onChange={this.handleSelectStructure.bind(this)}
-                  />) }
             <div
             className="MSA-structure-pv"
             ref={this.pvDivRef}
             />
-            </div>
             
             </div>)
   }
@@ -67,7 +78,7 @@ class MSAStruct extends Component {
   }
 
   handleSelectStructure (selection) {
-    this.props.updateStructure ({ structureInfo: selection.value })
+    this.props.updateStructure ({ structureInfo: selection.target.value })
   }
   
   loadStructure() {

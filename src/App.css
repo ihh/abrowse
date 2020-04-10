@@ -93,27 +93,37 @@
     flex-direction: column;
 }
 
-.MSA-structure-top {
-    position: relative;
-    width: 100%;
+.MSA-structure-name {
+    position: absolute;
+    bottom: 2px;
+    right: 2px;
+    font-size: small;
+    z-index: 1;
 }
 
 .MSA-structure-label {
     position: absolute;
-    top: 2px;
+    bottom: 2px;
     left: 2px;
     font-size: small;
+    z-index: 1;
+}
+
+.MSA-structure-top {
+    padding-left: 2px;
+    padding-right: 2px;
+    height: 1.5em;
+    z-index: 1;
 }
 
 .MSA-structure-close-button {
-    position: absolute;
-    top: 2px;
-    right: 2px;
-    font-size: small;
+    float: right;
+    cursor: pointer;
 }
 
-.MSA-structure-main {
-    width: 100%;
-    flex-grow: 1;
+.MSA-structure-pv {
+    position: absolute;
+    top: 0;
+    left: 0;
 }
 

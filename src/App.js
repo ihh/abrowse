@@ -37,7 +37,7 @@ class App extends Component {
 
     // font configuration
     const charFontName = 'Menlo,monospace'
-    const nameFontName = 'serif'
+    const nameFontName = 'inherit'
     const nameFontColor = 'black'
     const charFont = genericRowHeight + 'px ' + charFontName
     const color = config.color || colorSchemes[config.colorScheme]
