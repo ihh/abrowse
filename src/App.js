@@ -1,6 +1,6 @@
 import React, { Component } from 'react';
 import { Select, MenuItem } from '@material-ui/core';
-import { extend } from 'lodash';
+import { extend, isArray } from 'lodash';
 import colorSchemes from './colorSchemes'
 import './App.css';
 
@@ -105,9 +105,18 @@ class App extends Component {
         const name = stockholmjs.gf.ID ? stockholmjs.gf.ID[0] : newAlignmentName(n)
         return { stockholmjs, name }
       }))
-    } else
-      datasets.push ({ auto: text,
-                       name: newAlignmentName() })
+    } else {
+      try {
+        const json = JSON.parse (text)
+        if (isArray (json))
+          datasets = datasets.concat (json)
+        else
+          datasets.push (json)
+      } catch (e) {
+        datasets.push ({ auto: text,
+                         name: newAlignmentName() })
+      }
+    }
     if (datasets.length > this.state.datasets.length) {
       const firstDataset = datasets[this.state.datasets.length]
       this.setDataset (firstDataset, { datasets })
@@ -152,11 +161,20 @@ class App extends Component {
                              else
                                console.warn ('Error fetching ' + url, res.statusText)
                            })}))
+    if (data.json)
+      extend (data, typeof(data.json) === 'string' ? JSON.parse(data.json) : data.json)
     if (data.auto) {
       if (this.sniffStockholmRegex.test (data.auto))
         data.stockholm = data.auto
       else if (this.sniffFastaRegex.test (data.auto))
         data.fasta = data.auto
+      else {
+        try {
+          extend (data, JSON.parse (data.auto))
+        } catch (e) {
+          // do nothing if JSON didn't parse
+        }
+      }
     }
     if (!(data.branches && data.rowData)) {
       if (data.stockholm)  // was a Stockholm-format alignment specified?
