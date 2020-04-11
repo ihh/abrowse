@@ -10,7 +10,8 @@ class MSAStructPanel extends Component {
     super(props);
 
     this.state = { config: this.props.initConfig,
-                   viewMode: 'cartoon' }
+                   viewMode: 'cartoon',
+                   colorScheme: 'ssSuccession' }
   }
   
   render() {
@@ -21,13 +22,23 @@ class MSAStructPanel extends Component {
                
                <Select
                value={this.state.viewMode}
-               displayEmpty
                onChange={this.handleSelectViewType.bind(this)}
                >
                <MenuItem value='cartoon'>Cartoons</MenuItem>
                <MenuItem value='tube'>Tube</MenuItem>
                <MenuItem value='spheres'>Spheres</MenuItem>
                <MenuItem value='ballsAndSticks'>Balls and sticks</MenuItem>
+               </Select>
+               
+               <Select
+               value={this.state.colorScheme}
+               onChange={this.handleSelectColorScheme.bind(this)}
+               >
+               <MenuItem value='uniform'>Uniform</MenuItem>
+               <MenuItem value='byChain'>Chain</MenuItem>
+               <MenuItem value='bySS'>Secondary structure</MenuItem>
+               <MenuItem value='ssSuccession'>Secondary structure gradient</MenuItem>
+               <MenuItem value='rainbow'>Rainbow</MenuItem>
                </Select>
 
                <FormControlLabel
@@ -65,12 +76,13 @@ class MSAStructPanel extends Component {
   mouseoverLabelDelay() { return 100 }
   redrawStructureDelay() { return 500 }
 
-  setViewType (structure, viewMode) {
+  setViewType (structure, viewMode, colorScheme) {
     viewMode = viewMode || this.state.viewMode
+    colorScheme = colorScheme || this.state.colorScheme
     const { pdb, viewer } = structure
     if (viewer) {
       viewer.clear()
-      const geometry = viewer.renderAs ('protein', pdb, viewMode, { color : pv.color.ssSuccession() })
+      const geometry = viewer.renderAs ('protein', pdb, viewMode, { color : pv.color[colorScheme]() })
       this.props.updateStructure (structure, { geometry })
     }
     this.props.structures.forEach ((s) => {
@@ -83,6 +95,12 @@ class MSAStructPanel extends Component {
     const viewMode = evt.target.value
     this.setState ({ viewMode })
     this.props.structures.forEach ((s) => this.setViewType (s, viewMode))
+  }
+
+  handleSelectColorScheme (evt) {
+    const colorScheme = evt.target.value
+    this.setState ({ colorScheme })
+    this.props.structures.forEach ((s) => this.setViewType (s, undefined, colorScheme))
   }
   
   addLabelToStructuresOnMouseover (coords) {
