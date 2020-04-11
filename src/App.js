@@ -137,6 +137,7 @@ class App extends Component {
           const match = this.pdbRegex.exec(dr)
           if (match) {
             structure[node] = structure[node] || { pdb: match[1].toLowerCase(),
+                                                   startPos,
                                                    chains: [] }
             structure[node].chains.push ({ chain: match[2],
                                            startPos: parseInt (match[3]),

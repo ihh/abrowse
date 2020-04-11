@@ -98,10 +98,11 @@ class MSAStructPanel extends Component {
           const colToSeqPos = this.props.alignIndex.alignColToSeqPos[s.node]
           if (colToSeqPos) {
             const seqPos = colToSeqPos[coords.column]
+            const pdbSeqPos = seqPos + (s.structureInfo.startPos || 1)
             this.removeMouseoverLabels (s)
             s.structureInfo.chains.forEach ((chainInfo) => {
-              const pdbSeqPos = seqPos + (typeof(chainInfo.startPos) === 'undefined' ? 1 : chainInfo.startPos)
-              if (!chainInfo.endPos || pdbSeqPos <= chainInfo.endPos) {
+              if ((!chainInfo.startPos || pdbSeqPos >= chainInfo.startPos)
+                  && (!chainInfo.endPos || pdbSeqPos <= chainInfo.endPos)) {
                 const pdbChain = chainInfo.chain
                 const residues = s.pdb.residueSelect ((res) => {
                   return res.num() === pdbSeqPos
