@@ -258,6 +258,8 @@ class App extends Component {
     const structure = data.structure = data.structure || {}
     data.rowData = stock.seqdata
     this.guessSeqCoords (data)
+    if (stock.gf.DE)
+      data.description = stock.gf.DE.join("\n")
     if (stock.gf.NH && !data.newick)  // did the Stockholm alignment include a tree?
       data.newick = stock.gf.NH.join('')
     if (stock.gs.DR && !config.structure.noRemoteStructures)  // did the Stockholm alignment include links to PDB?
@@ -510,6 +512,12 @@ class App extends Component {
             : (<div className="MSA-appbar-title">
                {this.state.data.name}
                </div>))
+         : '')}
+      
+      { (this.state.data && this.state.data.description
+         ? (<div className="MSA-appbar-description">
+            {this.state.data.description}
+            </div>)
          : '')}
 
       </div>

@@ -3,19 +3,21 @@
 
 .MSA-appbar {
     display: flex;
-    justify-content: space-between;
-}
-
-.MSA-appbar-menu {
+    flex-direction: row;
+    font-size: large;
+    font-style: italic;
 }
 
 .MSA-appbar-title {
-    flex-grow: 1;
     text-align: left;
-    font-size: large;
-    font-style: italic;
-    padding-right: 4px;
     padding-top: 2px;
+    padding-left: 2px;
+}
+
+.MSA-appbar-description {
+    text-align: center;
+    flex-grow: 1;
+    padding: 2px;
 }
 
 .MSA {
