@@ -241,7 +241,7 @@ class MSA extends Component {
     this.nStructs = (this.nStructs || 0) + 1
     const newStructure = { node,
                            structureInfo: structure[node],
-                           startPos: this.props.data.startPos[node],
+                           startPos: this.props.data.seqCoords[node].startPos,
                            mouseoverLabel: [],
                            trueAtomColor: {},
                            key: this.nStructs }

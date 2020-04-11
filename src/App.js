@@ -202,27 +202,31 @@ class App extends Component {
         data.root = getName (tree)
       }
     }
-    // Attempt to figure out start coords relative to database sequences by parsing the sequence names
-    // This allows us to align to partial structures
-    // This is pretty hacky; the user can alternatively pass these in through the data.startPos field
-    if (!data.startPos)
-      data.startPos = {}
-    Object.keys (data.rowData).forEach ((name) => {
-      if (!data.startPos[name]) {
-        const seq = data.rowData[name]
-        const coordMatch = this.nameEncodedCoordRegex.exec (name)
-        if (coordMatch) {
-          const startPos = parseInt(coordMatch[1]), endPos = parseInt(coordMatch[2])
-          if (endPos + 1 - startPos === this.countNonGapChars (seq))
-            data.startPos[name] = startPos
-        }
-      }
-      if (!data.startPos[name])
-        data.startPos[name] = 1  // if we can't guess the start coord, just assume it's the full-length sequence
-    })
+    this.guessSeqCoords (data)  // this is an idempotent method; if data came from a Stockholm file, it's already been called (in order to filter out irrelevant structures)
     return data
   }
 
+    // Attempt to figure out start coords relative to database sequences by parsing the sequence names
+    // This allows us to align to partial structures
+    // This is pretty hacky; the user can alternatively pass these in through the data.seqCoords field
+  guessSeqCoords (data) {
+    if (!data.seqCoords)
+      data.seqCoords = {}
+    Object.keys (data.rowData).forEach ((name) => {
+      const seq = data.rowData[name], len = this.countNonGapChars (seq)
+      if (!data.seqCoords[name]) {
+        const coordMatch = this.nameEncodedCoordRegex.exec (name)
+        if (coordMatch) {
+          const startPos = parseInt(coordMatch[1]), endPos = parseInt(coordMatch[2])
+          if (endPos + 1 - startPos === len)
+            data.seqCoords[name] = { startPos, endPos }
+        }
+      }
+      if (!data.seqCoords[name])
+        data.seqCoords[name] = { startPos: 1, endPos: len }   // if we can't guess the start coord, just assume it's the full-length sequence
+    })
+  }
+  
   makeURL (url) {
     return url.replace ('%PUBLIC_URL%', process.env.PUBLIC_URL)
   }
@@ -235,18 +239,24 @@ class App extends Component {
   unpackStockholmJS (data, config, stock) {
     const structure = data.structure = data.structure || {}
     data.rowData = stock.seqdata
+    this.guessSeqCoords (data)
     if (stock.gf.NH && !data.newick)  // did the Stockholm alignment include a tree?
       data.newick = stock.gf.NH.join('')
     if (stock.gs.DR && !config.structure.noRemoteStructures)  // did the Stockholm alignment include links to PDB?
       Object.keys(stock.gs.DR).forEach ((node) => {
+        const seqCoords = data.seqCoords[node]
         stock.gs.DR[node].forEach ((dr) => {
           const match = this.pdbRegex.exec(dr)
           if (match) {
-            structure[node] = structure[node] || { pdb: match[1].toLowerCase(),
-                                                   chains: [] }
-            structure[node].chains.push ({ chain: match[2],
-                                           startPos: parseInt (match[3]),
-                                           endPos: parseInt (match[4]) })
+            const pdb = match[1].toLowerCase(), chain = match[2], startPos = parseInt (match[3]), endPos = parseInt (match[4])
+            if (startPos <= seqCoords.endPos && endPos >= seqCoords.startPos) {  // check structure overlaps sequence
+              structure[node] = structure[node] || { pdb,
+                                                     chains: [] }
+              structure[node].chains.push ({ chain,
+                                             startPos,
+                                             endPos })
+            } else
+              console.warn ('ignoring structure ' + pdb + ' (' + startPos + '...' + endPos + ') since it does not overlap with ' + node)
           }
         })
       })
