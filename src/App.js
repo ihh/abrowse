@@ -1,4 +1,5 @@
 import React, { Component } from 'react';
+import { Select, MenuItem } from '@material-ui/core';
 import { extend } from 'lodash';
 import colorSchemes from './colorSchemes'
 import './App.css';
@@ -38,49 +39,53 @@ class App extends Component {
     const color = config.color || colorSchemes[config.colorScheme]
     const computedFontConfig = { charFont, charFontName, color, nameFontName, nameFontSize, nameFontColor, genericRowHeight }
     
-    // state
+    // state (we will select a dataset in componentDidMount())
     this.state = { config,
                    computedTreeConfig,
                    computedFontConfig }
-
-    extend (this.state, this.selectDataset (props.data))
   }
 
-  selectDataset (suppliedData) {
-    const data = this.getData (extend ({}, suppliedData || {}), this.state.config)
+  handleSelectDataset (evt) {
+    this.setDataset (this.props.datasets.find ((ds) => ds.name === evt.target.value))
+  }
+  
+  setDataset (data) {
+    this.indexData (data)
+      .then ((dataWithIndices) => this.setState (dataWithIndices))
+  }
+
+  async indexData (suppliedData, suppliedConfig) {
+    const config = suppliedConfig || this.state.config
+    const data = await this.getData (config.cacheData ? suppliedData : extend ({}, suppliedData), config)
     const treeIndex = this.buildTreeIndex (data)
     const alignIndex = this.buildAlignmentIndex (data)
     return { data, treeIndex, alignIndex }
   }
-  
+
   // method to get data & build tree if necessary
-  get pdbRegex() { return /PDB; +(\S+) +(\S); ([0-9]+)/; }   /* PFAM format for embedding PDB IDs in Stockholm files */
-  getData (data, config) {
-    const structure = data.structure = data.structure || {}
+  get pdbRegex() { return /PDB; +(\S+) +(\S); ([0-9]+)-([0-9]+)/; }   /* PFAM format for embedding PDB IDs in Stockholm files */
+  get nameEncodedCoordRegex() { return /\/([0-9]+)-([0-9]+)$/; }   /* Pfam format for embedding coordinates in names (ugh) */
+  async getData (data, config) {
+    if (data.url)
+      await Promise.all (Object.keys (data.url)
+                         .filter (key => !data[key])
+                         .map ((key) => {
+                           const url = data.url[key].replace ('%PUBLIC_URL%', process.env.PUBLIC_URL)
+                           return fetch (url).then (async (res) => {
+                             if (res.ok)
+                               data[key] = await res.text()
+                             else
+                               console.warn ('Error fetching ' + url, res.statusText)
+                           })}))
     if (!(data.branches && data.rowData)) {
-      let newickStr = data.newick  // was a Newick-format tree specified?
-      if (data.stockholm) {  // was a Stockholm-format alignment specified?
-        const stock = Stockholm.parse (data.stockholm)
-        data.rowData = stock.seqdata
-        if (stock.gf.NH && !newickStr)  // did the Stockholm alignment include a tree?
-          newickStr = stock.gf.NH.join('')
-        if (stock.gs.DR && !config.structure.noRemoteStructures)  // did the Stockholm alignment include links to PDB?
-          Object.keys(stock.gs.DR).forEach ((node) => {
-            stock.gs.DR[node].forEach ((dr) => {
-              const match = this.pdbRegex.exec(dr)
-              if (match) {
-                structure[node] = structure[node] || { pdb: match[1].toLowerCase(),
-                                                       chains: [] }
-                structure[node].chains.push ({ chain: match[2],
-                                               startPos: parseInt (match[3]) })
-              }
-            })
-          })
-      } else if (data.fasta)  // was a FASTA-format alignment specified
+      if (data.stockholm)  // was a Stockholm-format alignment specified?
+        this.unpackStockholm (data, config, data.stockholm)
+      else if (data.fasta)  // was a FASTA-format alignment specified?
         data.rowData = this.parseFasta (data.fasta)
       else
         throw new Error ("no sequence data")
       // If a Newick-format tree was specified somehow (as a separate data item, or in the Stockholm alignment) then parse it
+      let newickStr = data.newick
       if (newickStr) {
         const newickTree = Newick.parse (newickStr)
         let nodes = 0
@@ -118,8 +123,31 @@ class App extends Component {
     return data
   }
 
+  unpackStockholm (data, config, stockholm) {
+    const structure = data.structure = data.structure || {}
+    const stock = Stockholm.parse (stockholm)
+    data.rowData = stock.seqdata
+    if (stock.gf.NH && !data.newick)  // did the Stockholm alignment include a tree?
+      data.newick = stock.gf.NH.join('')
+    if (stock.gs.DR && !config.structure.noRemoteStructures)  // did the Stockholm alignment include links to PDB?
+      Object.keys(stock.gs.DR).forEach ((node) => {
+        const coordMatch = this.nameEncodedCoordRegex.exec(node)
+        const startPos = coordMatch ? coordMatch[2] : 1
+        stock.gs.DR[node].forEach ((dr) => {
+          const match = this.pdbRegex.exec(dr)
+          if (match) {
+            structure[node] = structure[node] || { pdb: match[1].toLowerCase(),
+                                                   chains: [] }
+            structure[node].chains.push ({ chain: match[2],
+                                           startPos: parseInt (match[3]),
+                                           endPos: parseInt (match[4]) })
+          }
+        })
+      })
+  }
+  
   componentDidMount() {
-    this.reconstructMissingNodes()
+    this.setDataset (this.props.data || this.props.datasets[0])
   }
   
   componentDidUpdate() {
@@ -129,28 +157,32 @@ class App extends Component {
   reconstructMissingNodes() {
     // check if any nodes are missing; if so, do ancestral sequence reconstruction
     const { data } = this.state
+    let promise
     if (data) {
       const { branches } = data
       let rowData = extend ({}, data.rowData)
       const missingAncestors = data.branches.filter ((b) => typeof(rowData[b[0]]) === 'undefined').length
-      if (missingAncestors) {
+      if (missingAncestors && !this.state.reconstructingAncestors) {
+        this.setState ({ reconstructingAncestors: true })
         if (window.Worker) {
           console.warn ('Reconstructing ancestral sequences in web worker...')
           let instance = getAncestralReconstructionWorker()
-          instance.getAncestralReconstruction ({ branches, rowData })
+          promise = instance.getAncestralReconstruction ({ branches, rowData })
             .then ((ancestralRowData) => {
               console.warn ('Ancestral sequence reconstruction complete')
               this.incorporateAncestralReconstruction (ancestralRowData)
             })
         } else {
           console.warn ('Reconstructing ancestral sequences...')
-          getAncestralReconstruction ({ branches, rowData })
+          promise = getAncestralReconstruction ({ branches, rowData })
             .then ((ancestralRowData) => {
               this.incorporateAncestralReconstruction (ancestralRowData)
             })
         }
       }
-    }
+    } else
+      promise = Promise.resolve()
+    return promise
   }
 
   fn2workerURL (fn) {
@@ -161,7 +193,7 @@ class App extends Component {
   incorporateAncestralReconstruction (ancestralRowData) {
     const { data } = this.state
     const rowData = extend ({}, data.rowData, ancestralRowData)
-    extend (data, { rowData })
+    extend (data, { rowData, reconstructingAncestors: false })
     this.setState ({ data })
   }
 
@@ -298,10 +330,19 @@ class App extends Component {
 
         <div className="MSA-appbar">
         
-        { this.state.data.name &&
-          (<div className="MSA-appbar-title">
-           {this.state.data.name}
-           </div>) }
+      { (this.state.data
+         ? (this.props.datasets
+            ? ((<Select
+                value={this.state.data.name}
+                onChange={this.handleSelectDataset.bind(this)}
+                >
+                {this.props.datasets.map ((data) => (<MenuItem key={data.name} value={data.name}>{data.name}</MenuItem>))}
+                </Select>
+               ))
+            : (<div className="MSA-appbar-title">
+               {this.state.data.name}
+               </div>))
+         : '')}
 
       </div>
 

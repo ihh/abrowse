@@ -73,6 +73,9 @@ class MSAStructPanel extends Component {
       const geometry = viewer.renderAs ('protein', pdb, viewMode, { color : pv.color.ssSuccession() })
       this.props.updateStructure (structure, { geometry })
     }
+    this.props.structures.forEach ((s) => {
+      this.props.updateStructure (s, { trueAtomColor: {} })
+    })
     this.requestRedrawStructures()
   }
 
@@ -98,26 +101,28 @@ class MSAStructPanel extends Component {
             this.removeMouseoverLabels (s)
             s.structureInfo.chains.forEach ((chainInfo) => {
               const pdbSeqPos = seqPos + (typeof(chainInfo.startPos) === 'undefined' ? 1 : chainInfo.startPos)
-              const pdbChain = chainInfo.chain
-              const residues = s.pdb.residueSelect ((res) => {
-                return res.num() === pdbSeqPos
-                  && (typeof(pdbChain) === 'undefined' || res.chain().name() === pdbChain)
-              })
-              if (residues) {
-                residues.eachResidue ((res) => {
-                  const label = 'mouseover' + (s.mouseoverLabel.length + 1)
-                  if (this.state.config.showMouseoverLabel)
-                    s.viewer.label (label, res.qualifiedName(), res.centralAtom().pos(), labelConfig)
-                  res.atoms().forEach ((atom) => {
-                    if (!s.trueAtomColor[atom]) {
-                      const atomColor = [0, 0, 0, 0]
-                      s.geometry.getColorForAtom (atom, atomColor)
-                      s.trueAtomColor[atom.index()] = atomColor
-                    }
-                  })
-                  res.atoms().forEach ((atom) => this.setColorForAtom (s.geometry, atom, atomHighlightColor))
-                  s.mouseoverLabel.push ({ label, res })
+              if (!chainInfo.endPos || pdbSeqPos <= chainInfo.endPos) {
+                const pdbChain = chainInfo.chain
+                const residues = s.pdb.residueSelect ((res) => {
+                  return res.num() === pdbSeqPos
+                    && (typeof(pdbChain) === 'undefined' || res.chain().name() === pdbChain)
                 })
+                if (residues) {
+                  residues.eachResidue ((res) => {
+                    const label = 'mouseover' + (s.mouseoverLabel.length + 1)
+                    if (this.state.config.showMouseoverLabel)
+                      s.viewer.label (label, res.qualifiedName(), res.centralAtom().pos(), labelConfig)
+                    res.atoms().forEach ((atom) => {
+                      if (!s.trueAtomColor[atom]) {
+                        const atomColor = [0, 0, 0, 0]
+                        s.geometry.getColorForAtom (atom, atomColor)
+                        s.trueAtomColor[atom.index()] = atomColor
+                      }
+                    })
+                    this.setColorForAtoms (s.geometry, res.atoms(), atomHighlightColor)
+                    s.mouseoverLabel.push ({ label, res })
+                  })
+                }
               }
             })
           }
@@ -139,18 +144,21 @@ class MSAStructPanel extends Component {
     structure.mouseoverLabel.forEach ((labelInfo) => {
       if (this.state.config.showMouseoverLabel)
         structure.viewer.rm (labelInfo.label)
+      let byColor = {}
       labelInfo.res.atoms().forEach ((atom) => {
-        const trueColor = structure.trueAtomColor[atom.index()]
-        this.setColorForAtom (structure.geometry, atom, trueColor)
+        const trueColor = structure.trueAtomColor[atom.index()], colorString = trueColor.toString()
+        byColor[colorString] = byColor[colorString] || { trueColor, atoms: [] }
+        byColor[colorString].atoms.push (atom)
       })
+      Object.keys(byColor).forEach ((col) => this.setColorForAtoms (structure.geometry, byColor[col].atoms, byColor[col].trueColor))
     })
     structure.mouseoverLabel = []
   }
 
-  setColorForAtom (go, atom, color) {
-    let view = go.structure().createEmptyView();
-    view.addAtom (atom);
-    go.colorBy (pv.color.uniform(color), view);
+  setColorForAtoms (go, atoms, color) {
+    let view = go.structure().createEmptyView()
+    atoms.forEach ((atom) => view.addAtom (atom))
+    go.colorBy (pv.color.uniform(color), view)
   }
 
   // delayed request to redraw structure

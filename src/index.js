@@ -5,7 +5,7 @@ import App from './App';
 import * as serviceWorker from './serviceWorker';
 
 const opts = {
-  data: {
+  datasets: [{
     name: "Spike_rec_bind",
     "branches": [
       ["node3","SPIKE_CVP67/326-526",0.0044021],
@@ -123,6 +123,10 @@ const opts = {
       }]
     }
   },
+             {
+               name: 'Corona_S2',
+               url: { stockholm: '%PUBLIC_URL%/PF01601_full.txt' }
+             }],
   config: {
     containerHeight: '800px',
     handler: {

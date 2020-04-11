@@ -11,7 +11,7 @@
 
 .MSA-appbar-title {
     flex-grow: 1;
-    text-align: right;
+    text-align: left;
     font-size: large;
     font-style: italic;
     padding-right: 4px;
