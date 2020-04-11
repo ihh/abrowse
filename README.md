@@ -1,3 +1,8 @@
+# abrowse
+
+ABrowse is a multiple sequence alignment browser with integrated phylogeny and protein structure views,
+created by the [JBrowse](https://jbrowse.org/) team.
+
 This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
 
 ## Available Scripts

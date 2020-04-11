@@ -1,7 +1,7 @@
 {
   "name": "abrowse",
   "version": "0.1.0",
-  "private": true,
+  "main": "src/App.js",
   "dependencies": {
     "@material-ui/core": "^4.9.9",
     "@material-ui/icons": "^4.9.1",
@@ -16,7 +16,6 @@
     "phylogenetic-likelihood": "^1.0.5",
     "react": "^16.13.1",
     "react-dom": "^16.13.1",
-    "react-multiselect-checkboxes": "^0.1.1",
     "react-scripts": "3.4.1",
     "stockholm-js": "^1.0.6"
   },
