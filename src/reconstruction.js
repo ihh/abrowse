@@ -1,7 +1,7 @@
 import PhylogeneticLikelihood from 'phylogenetic-likelihood';
 
 export const getAncestralReconstruction = async (data) => {
-  const { branches, rowData } = data
+  const { branches, rowData, id } = data
   let ancestralRowData = {}
   const alphSize = 20  // assume for ancestral reconstruction purposes these are protein sequences; if not we'll need to pass a different model into getNodePostProfiles
   const maxEntropy = Math.log(alphSize) / Math.log(2)
@@ -26,5 +26,5 @@ export const getAncestralReconstruction = async (data) => {
       return chars.map ((c, n) => [c, probs[n] * (maxEntropy - entropy) / maxEntropy])
     })
   })
-  return ancestralRowData
+  return { id, ancestralRowData }
 }

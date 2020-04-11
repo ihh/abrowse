@@ -41,20 +41,88 @@ class App extends Component {
     
     // state (we will select a dataset in componentDidMount())
     this.state = { config,
+                   datasets: this.props.datasets || [],
                    computedTreeConfig,
                    computedFontConfig }
 
+    this.divRef = React.createRef()
+    this.inputRef = React.createRef()
     this.msaRef = React.createRef()
   }
 
-  handleSelectDataset (evt) {
-    this.setDataset (this.props.datasets.find ((ds) => ds.name === evt.target.value))
-    this.msaRef.current.resetView()
+  handleDragEnter (evt) {
+    evt.stopPropagation()
+    evt.preventDefault()
+  }
+
+  handleDragOver (evt) {
+    evt.stopPropagation()
+    evt.preventDefault()
+    evt.dataTransfer.dropEffect = 'copy'
+  }
+
+  handleDrop (evt) {
+    evt.stopPropagation()
+    evt.preventDefault()
+    this.openFiles (evt.dataTransfer.files)
   }
   
-  setDataset (data) {
+  handleSelectDataset (evt) {
+    const name = evt.target.value
+    if (name) {
+      this.setDataset (this.state.datasets.find ((ds) => ds.name === name))
+      this.msaRef.current.resetView()
+    } else
+      this.inputRef.current.click()
+  }
+
+  handleSelectFile (evt) {
+    this.openFiles (evt.target.files)
+  }
+  
+  openFiles (files) {
+    return Promise.all (Array.from(files).map ((file) => this.openFile (file)))
+  }
+  
+  openFile (file) {
+    return new Promise ((resolve, reject) => {
+      const reader = new FileReader()
+      reader.onload = (e) => {
+        const text = e.target.result
+        this.addDatasets (text)
+        resolve()
+      }
+      reader.readAsText (file)
+    })
+  }
+
+  addDatasets (text) {
+    const newAlignmentName = (n) => "Alignment " + (this.state.datasets.length + (n || 0) + 1);
+    let datasets = this.state.datasets
+    if (this.sniffStockholmRegex.test (text)) {
+      const stocks = Stockholm.parseAll (text)
+      datasets = datasets.concat (stocks.map ((stockholmjs, n) => {
+        const name = stockholmjs.gf.ID ? stockholmjs.gf.ID[0] : newAlignmentName(n)
+        return { stockholmjs, name }
+      }))
+    } else
+      datasets.push ({ auto: text,
+                       name: newAlignmentName() })
+    if (datasets.length > this.state.datasets.length) {
+      const firstDataset = datasets[this.state.datasets.length]
+      this.setDataset (firstDataset, { datasets })
+      if (this.msaRef.current)
+        this.msaRef.current.resetView()
+    }
+  }
+  
+  setDataset (data, extra) {
+    const datasetID = this.datasetsLoaded = (this.datasetsLoaded || 0) + 1
     this.indexData (data)
-      .then ((dataWithIndices) => this.setState (dataWithIndices))
+      .then ((dataWithIndices) => this.setState (extend ({ datasetID,
+                                                           reconstructingAncestors: false },
+                                                         dataWithIndices,
+                                                         extra || {})))
   }
 
   async indexData (suppliedData, suppliedConfig) {
@@ -65,24 +133,36 @@ class App extends Component {
     return { data, treeIndex, alignIndex }
   }
 
-  // method to get data & build tree if necessary
+  // regexes
   get pdbRegex() { return /PDB; +(\S+) +(\S); ([0-9]+)-([0-9]+)/; }   /* PFAM format for embedding PDB IDs in Stockholm files */
   get nameEncodedCoordRegex() { return /\/([0-9]+)-([0-9]+)$/; }   /* Pfam format for embedding coordinates in names (ugh) */
+  get sniffStockholmRegex() { return /^# STOCKHOLM/; }   /* regex for sniffing Stockholm format */
+  get sniffFastaRegex() { return /^>/; }   /* regex for sniffing FASTA format */
+
+  // method to get data & build tree if necessary
   async getData (data, config) {
     if (data.url)
       await Promise.all (Object.keys (data.url)
                          .filter (key => !data[key])
                          .map ((key) => {
-                           const url = data.url[key].replace ('%PUBLIC_URL%', process.env.PUBLIC_URL)
+                           const url = this.makeURL (data.url[key])
                            return fetch (url).then (async (res) => {
                              if (res.ok)
                                data[key] = await res.text()
                              else
                                console.warn ('Error fetching ' + url, res.statusText)
                            })}))
+    if (data.auto) {
+      if (this.sniffStockholmRegex.test (data.auto))
+        data.stockholm = data.auto
+      else if (this.sniffFastaRegex.test (data.auto))
+        data.fasta = data.auto
+    }
     if (!(data.branches && data.rowData)) {
       if (data.stockholm)  // was a Stockholm-format alignment specified?
         this.unpackStockholm (data, config, data.stockholm)
+      else if (data.stockholmjs)  // was a StockholmJS object specified?
+        this.unpackStockholmJS (data, config, data.stockholmjs)
       else if (data.fasta)  // was a FASTA-format alignment specified?
         data.rowData = this.parseFasta (data.fasta)
       else
@@ -105,7 +185,7 @@ class App extends Component {
       } else {  // no Newick tree was specified, so build a quick-and-dirty distance matrix with Jukes-Cantor, and get a tree by neighbor-joining
         console.warn ('Estimating phylogenetic tree...')
         const taxa = Object.keys(data.rowData).sort(), seqs = taxa.map ((taxon) => data.rowData[taxon])
-        const distMatrix = JukesCantor.calcDistanceMatrix (seqs)
+        const distMatrix = JukesCantor.calcFiniteDistanceMatrix (seqs)
         const rnj = new RapidNeighborJoining.RapidNeighborJoining (distMatrix, taxa.map ((name) => ({ name })))
         rnj.run()
         const tree = rnj.getAsObject()
@@ -143,9 +223,17 @@ class App extends Component {
     return data
   }
 
+  makeURL (url) {
+    return url.replace ('%PUBLIC_URL%', process.env.PUBLIC_URL)
+  }
+  
   unpackStockholm (data, config, stockholm) {
+    const stockjs = Stockholm.parse (stockholm)
+    this.unpackStockholmJS (data, config, stockjs)
+  }
+
+  unpackStockholmJS (data, config, stock) {
     const structure = data.structure = data.structure || {}
-    const stock = Stockholm.parse (stockholm)
     data.rowData = stock.seqdata
     if (stock.gf.NH && !data.newick)  // did the Stockholm alignment include a tree?
       data.newick = stock.gf.NH.join('')
@@ -165,13 +253,34 @@ class App extends Component {
   }
   
   componentDidMount() {
-    this.setDataset (this.props.data || this.props.datasets[0])
+    this.divRef.current.addEventListener ('dragover', this.handleDragOver.bind(this), false)
+    this.divRef.current.addEventListener ('dragenter', this.handleDragEnter.bind(this), false)
+    this.divRef.current.addEventListener ('drop', this.handleDrop.bind(this), false)
+    this.initDataset()
   }
-  
+
+  componentWillUnmount() {
+    this.divRef.current.removeEventListener ('dragover', this.handleDragOver.bind(this), false)
+    this.divRef.current.removeEventListener ('dragenter', this.handleDragEnter.bind(this), false)
+    this.divRef.current.removeEventListener ('drop', this.handleDrop.bind(this))
+  }
+
   componentDidUpdate() {
     this.reconstructMissingNodes()
   }
 
+  async initDataset() {
+    if (this.props.stockholm)
+      this.addDatasets (this.props.stockholm)
+    if (this.props.dataurl)
+      await fetch(this.makeURL (this.props.dataurl))
+      .then (async (res) => {
+        if (res.ok)
+          this.addDatasets (await res.text())
+      })
+    this.setDataset (this.props.data || this.state.datasets[0])
+  }
+  
   reconstructMissingNodes() {
     // check if any nodes are missing; if so, do ancestral sequence reconstruction
     const { data } = this.state
@@ -185,16 +294,19 @@ class App extends Component {
         if (window.Worker) {
           console.warn ('Reconstructing ancestral sequences in web worker...')
           let instance = getAncestralReconstructionWorker()
-          promise = instance.getAncestralReconstruction ({ branches, rowData })
-            .then ((ancestralRowData) => {
+          promise = instance.getAncestralReconstruction ({ branches, rowData, id: this.state.datasetID })
+            .then ((result) => {
               console.warn ('Ancestral sequence reconstruction complete')
-              this.incorporateAncestralReconstruction (ancestralRowData)
+              if (result.id === this.state.datasetID)
+                this.incorporateAncestralReconstruction (result.ancestralRowData)
+              else
+                console.warn ('Discarding unused ancestral sequence reconstruction')  // guard against bug where ancestral reconstruction comes in after dataset has been changed
             })
         } else {
           console.warn ('Reconstructing ancestral sequences...')
           promise = getAncestralReconstruction ({ branches, rowData })
-            .then ((ancestralRowData) => {
-              this.incorporateAncestralReconstruction (ancestralRowData)
+            .then ((result) => {
+              this.incorporateAncestralReconstruction (result.ancestralRowData)
             })
         }
       }
@@ -345,17 +457,26 @@ class App extends Component {
       
   render() {
     return (
-        <div className="App">
+        <div className="App"
+      ref={this.divRef}
+        >
 
         <div className="MSA-appbar">
+
+        <input type='file'
+      ref={this.inputRef}
+      onChange={this.handleSelectFile.bind(this)}
+      style={{display:'none'}}
+        />
         
       { (this.state.data
-         ? (this.props.datasets
+         ? (this.state.datasets.length
             ? ((<Select
                 value={this.state.data.name}
                 onChange={this.handleSelectDataset.bind(this)}
                 >
-                {this.props.datasets.map ((data) => (<MenuItem key={data.name} value={data.name}>{data.name}</MenuItem>))}
+                {this.state.datasets.map ((data) => (<MenuItem key={data.name} value={data.name}>{data.name}</MenuItem>))}
+                <MenuItem value=''><i>Open alignment file</i></MenuItem>
                 </Select>
                ))
             : (<div className="MSA-appbar-title">

@@ -127,6 +127,7 @@ const opts = {
                name: 'Corona_S2',
                url: { stockholm: '%PUBLIC_URL%/PF01601_full.txt' }
              }],
+//  dataurl: '%PUBLIC_URL%/PF01601_full.txt',
   config: {
     containerHeight: '1000px',
     handler: {
