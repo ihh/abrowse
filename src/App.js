@@ -43,10 +43,13 @@ class App extends Component {
     this.state = { config,
                    computedTreeConfig,
                    computedFontConfig }
+
+    this.msaRef = React.createRef()
   }
 
   handleSelectDataset (evt) {
     this.setDataset (this.props.datasets.find ((ds) => ds.name === evt.target.value))
+    this.msaRef.current.resetView()
   }
   
   setDataset (data) {
@@ -85,9 +88,8 @@ class App extends Component {
       else
         throw new Error ("no sequence data")
       // If a Newick-format tree was specified somehow (as a separate data item, or in the Stockholm alignment) then parse it
-      let newickStr = data.newick
-      if (newickStr) {
-        const newickTree = Newick.parse (newickStr)
+      if (data.newick || data.newickjs) {
+        const newickTree = data.newickjs || Newick.parse (data.newick)
         let nodes = 0
         const getName = (obj) => (obj.name = obj.name || ('node' + (++nodes)))
         data.branches = []
@@ -120,6 +122,24 @@ class App extends Component {
         data.root = getName (tree)
       }
     }
+    // Attempt to figure out start coords relative to database sequences by parsing the sequence names
+    // This allows us to align to partial structures
+    // This is pretty hacky; the user can alternatively pass these in through the data.startPos field
+    if (!data.startPos)
+      data.startPos = {}
+    Object.keys (data.rowData).forEach ((name) => {
+      if (!data.startPos[name]) {
+        const seq = data.rowData[name]
+        const coordMatch = this.nameEncodedCoordRegex.exec (name)
+        if (coordMatch) {
+          const startPos = parseInt(coordMatch[1]), endPos = parseInt(coordMatch[2])
+          if (endPos + 1 - startPos === this.countNonGapChars (seq))
+            data.startPos[name] = startPos
+        }
+      }
+      if (!data.startPos[name])
+        data.startPos[name] = 1  // if we can't guess the start coord, just assume it's the full-length sequence
+    })
     return data
   }
 
@@ -131,13 +151,10 @@ class App extends Component {
       data.newick = stock.gf.NH.join('')
     if (stock.gs.DR && !config.structure.noRemoteStructures)  // did the Stockholm alignment include links to PDB?
       Object.keys(stock.gs.DR).forEach ((node) => {
-        const coordMatch = this.nameEncodedCoordRegex.exec(node)
-        const startPos = coordMatch ? coordMatch[2] : 1
         stock.gs.DR[node].forEach ((dr) => {
           const match = this.pdbRegex.exec(dr)
           if (match) {
             structure[node] = structure[node] || { pdb: match[1].toLowerCase(),
-                                                   startPos,
                                                    chains: [] }
             structure[node].chains.push ({ chain: match[2],
                                            startPos: parseInt (match[3]),
@@ -194,8 +211,8 @@ class App extends Component {
   incorporateAncestralReconstruction (ancestralRowData) {
     const { data } = this.state
     const rowData = extend ({}, data.rowData, ancestralRowData)
-    extend (data, { rowData, reconstructingAncestors: false })
-    this.setState ({ data })
+    extend (data, { rowData })
+    this.setState ({ data, reconstructingAncestors: false })
   }
 
   defaultColorScheme() { return 'maeditor' }
@@ -214,7 +231,7 @@ class App extends Component {
       nodeHandleFillStyle: 'white',
       collapsedNodeHandleFillStyle: 'black',
       rowConnectorDash: [2,2],
-      structure: { width: 300, height: 300 },
+      structure: { width: 400, height: 400 },
       handler: {},
       colorScheme: this.defaultColorScheme()
     } }
@@ -322,9 +339,10 @@ class App extends Component {
     return { alignColToSeqPos, rowDataAsArray, columns, chars }
   }
 
-  // helper to recognize gap characters
+  // helpers to recognize gap characters
   isGapChar (c) { return typeof(c) === 'string' ? (c === '-' || c === '.') : (!c || Object.keys(c).length === 0) }
-
+  countNonGapChars (seq) { return seq.split('').filter ((c) => !this.isGapChar(c)).length }
+      
   render() {
     return (
         <div className="App">
@@ -349,6 +367,7 @@ class App extends Component {
 
       { this.state.data &&
         <MSA
+        ref={this.msaRef}
         data={this.state.data}
         isGapChar={this.isGapChar.bind(this)}
         config={this.state.config}

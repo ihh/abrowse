@@ -104,7 +104,6 @@ const opts = {
     structure: {
       'SPIKE_CVHSA/317-569': [{
         pdb: '5wrg',
-        startPos: 317,
         chains: [{
           startPos: 317,
           chain: 'A'
@@ -117,7 +116,6 @@ const opts = {
         }]
       }, {
         pdb: '5xlr',
-        startPos: 317,
         chains: [{
           startPos: 317,
           chain: 'A'
@@ -130,7 +128,7 @@ const opts = {
                url: { stockholm: '%PUBLIC_URL%/PF01601_full.txt' }
              }],
   config: {
-    containerHeight: '800px',
+    containerHeight: '1000px',
     handler: {
       click: (coords) => {
         console.warn ('Click ' + coords.node + ' column ' + coords.column + (coords.isGap ? '' : (', position ' + coords.seqPos)) + ' (' + coords.c + ')')

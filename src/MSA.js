@@ -38,6 +38,10 @@ class MSA extends Component {
   collapseAnimationDuration() { return 200 }
   collapseAnimationMaxFrameSkip() { return 8 }
 
+  resetView() {
+    this.setState ({ view: this.initialView() })
+  }
+  
   // get tree collapsed/open state
   getComputedView (view) {
     view = view || this.state.view
@@ -237,6 +241,7 @@ class MSA extends Component {
     this.nStructs = (this.nStructs || 0) + 1
     const newStructure = { node,
                            structureInfo: structure[node],
+                           startPos: this.props.data.startPos[node],
                            mouseoverLabel: [],
                            trueAtomColor: {},
                            key: this.nStructs }

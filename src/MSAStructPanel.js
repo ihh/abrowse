@@ -98,7 +98,7 @@ class MSAStructPanel extends Component {
           const colToSeqPos = this.props.alignIndex.alignColToSeqPos[s.node]
           if (colToSeqPos) {
             const seqPos = colToSeqPos[coords.column]
-            const pdbSeqPos = seqPos + (s.structureInfo.startPos || 1)
+            const pdbSeqPos = seqPos + s.startPos
             this.removeMouseoverLabels (s)
             s.structureInfo.chains.forEach ((chainInfo) => {
               if ((!chainInfo.startPos || pdbSeqPos >= chainInfo.startPos)
@@ -114,7 +114,7 @@ class MSAStructPanel extends Component {
                     if (this.state.config.showMouseoverLabel)
                       s.viewer.label (label, res.qualifiedName(), res.centralAtom().pos(), labelConfig)
                     res.atoms().forEach ((atom) => {
-                      if (!s.trueAtomColor[atom]) {
+                      if (!s.trueAtomColor[atom.index()]) {
                         const atomColor = [0, 0, 0, 0]
                         s.geometry.getColorForAtom (atom, atomColor)
                         s.trueAtomColor[atom.index()] = atomColor
