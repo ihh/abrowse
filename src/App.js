@@ -265,19 +265,27 @@ class App extends Component {
       data.newick = stock.gf.NH.join('')
     if (stock.gs.DR && !config.structure.noRemoteStructures)  // did the Stockholm alignment include links to PDB?
       Object.keys(stock.gs.DR).forEach ((node) => {
-        const seqCoords = data.seqCoords[node]
+        const seqCoords = data.seqCoords[node], seqLen = seqCoords.endPos - seqCoords.startPos
         stock.gs.DR[node].forEach ((dr) => {
           const match = this.pdbRegex.exec(dr)
           if (match) {
             const pdb = match[1].toLowerCase(), chain = match[2], startPos = parseInt (match[3]), endPos = parseInt (match[4])
-            if (startPos <= seqCoords.endPos && endPos >= seqCoords.startPos) {  // check structure overlaps sequence
-              structure[node] = structure[node] || { pdb,
-                                                     chains: [] }
-              structure[node].chains.push ({ chain,
-                                             startPos,
-                                             endPos })
+            const pdbLen = endPos - startPos
+            if (seqLen === pdbLen) {  // check structure matches sequence
+              structure[node] = structure[node] || []
+              const pdbIndex = structure[node].findIndex ((s) => s.pdb === pdb)
+              let pdbStruct
+              if (pdbIndex < 0) {
+                pdbStruct = { pdb,
+                              chains: [] }
+                structure[node].push (pdbStruct)
+              } else
+                pdbStruct = structure[node][pdbIndex]
+              pdbStruct.chains.push ({ chain,
+                                       startPos,
+                                       endPos })
             } else
-              console.warn ('ignoring structure ' + pdb + ' (' + startPos + '...' + endPos + ') since it does not overlap with ' + node)
+              console.warn ('ignoring structure ' + pdb + ' (' + startPos + '...' + endPos + ') since it is not a full-length match to ' + node + ' (' + pdbLen + '!=' + seqLen + ')')
           }
         })
       })
