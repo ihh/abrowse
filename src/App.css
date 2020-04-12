@@ -14,8 +14,8 @@
     padding-left: 2px;
 }
 
-.MSA-appbar-description {
-    text-align: center;
+.MSA-appbar-link {
+    text-align: right;
     flex-grow: 1;
     padding: 2px;
 }

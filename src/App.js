@@ -101,7 +101,12 @@ class App extends Component {
     if (this.sniffStockholmRegex.test (text)) {
       const stocks = Stockholm.parseAll (text)
       datasets = datasets.concat (stocks.map ((stockholmjs, n) => {
-        const name = stockholmjs.gf.ID ? stockholmjs.gf.ID[0] : newAlignmentName(n)
+        let name
+        ['DE','ID','AC'].forEach ((tag) => {
+          if (!name && stockholmjs.gf[tag] && stockholmjs.gf[tag].length)
+            name = stockholmjs.gf[tag][0]
+        })
+        name = name || newAlignmentName(n)
         return { stockholmjs, name }
       }))
     } else {
@@ -261,8 +266,6 @@ class App extends Component {
     const structure = data.structure = data.structure || {}
     data.rowData = stock.seqdata
     this.guessSeqCoords (data)
-    if (stock.gf.DE)
-      data.description = stock.gf.DE.join("\n")
     if (stock.gf.NH && !data.newick)  // did the Stockholm alignment include a tree?
       data.newick = stock.gf.NH.join('')
     if (stock.gs.DR && !config.structure.noRemoteStructures)  // did the Stockholm alignment include links to PDB?
@@ -527,11 +530,9 @@ class App extends Component {
                </div>))
          : '')}
       
-      { (this.state.data && this.state.data.description
-         ? (<div className="MSA-appbar-description">
-            {this.state.data.description}
-            </div>)
-         : '')}
+      <div className="MSA-appbar-link">
+        <a target="_blank" rel="noopener noreferrer" href="https://github.com/ihh/abrowse">GitHub</a>
+        </div>
 
       </div>
 
