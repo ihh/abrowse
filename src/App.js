@@ -355,7 +355,7 @@ class App extends Component {
     const { data } = this.state
     const rowData = extend ({}, data.rowData, ancestralRowData)
     extend (data, { rowData })
-    this.setState ({ data, reconstructingAncestors: false })
+    this.setDataset (data)  // rebuilds indices
   }
 
   defaultColorScheme() { return 'maeditor' }
@@ -466,7 +466,7 @@ class App extends Component {
         console.error ("Inconsistent row lengths")
       columns = row.length
       let pos2col = [], pos = 0
-      const rowAsArray = typeof(row) === 'string' ? row.split('') : row
+      const rowAsArray = this.rowAsArray (row)
       alignColToSeqPos[node] = rowAsArray.map ((c, col) => {
         if (typeof(c) === 'string')
           isChar[c] = true
@@ -484,8 +484,9 @@ class App extends Component {
 
   // helpers to recognize gap characters
   isGapChar (c) { return typeof(c) === 'string' ? (c === '-' || c === '.') : (!c || Object.keys(c).length === 0) }
-  countNonGapChars (seq) { return seq.split('').filter ((c) => !this.isGapChar(c)).length }
-      
+  countNonGapChars (seq) { return this.rowAsArray(seq).filter ((c) => !this.isGapChar(c)).length }
+  rowAsArray (row) { return typeof(row) === 'string' ? row.split('') : row }
+  
   render() {
     return (
         <div className="App"

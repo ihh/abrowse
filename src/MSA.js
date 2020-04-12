@@ -408,7 +408,7 @@ class MSA extends Component {
   }
 
   centroidOfColumns (cols, alignLayout) {
-    return cols.reduce ((sum, col) => sum + alignLayout.colX[col] + (alignLayout.colWidth[col] / 2), 0) / cols.length
+    return cols.length && (cols.reduce ((sum, col) => sum + alignLayout.colX[col] + (alignLayout.colWidth[col] / 2), 0) / cols.length)
   }
 
   incAlignScrollLeft (dx) {
