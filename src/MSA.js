@@ -1,5 +1,5 @@
 import React, { Component } from 'react';
-import { extend } from 'lodash';
+import { extend, isArray } from 'lodash';
 
 import MSATree from './MSATree';
 import MSAAlignNames from './MSAAlignNames';
@@ -244,8 +244,11 @@ class MSA extends Component {
   handleNameClick (node) {
     const { structure } = this.props.data
     this.nStructs = (this.nStructs || 0) + 1
+    let info = structure[node]
+    if (isArray(info) && info.length === 1)
+      info = info[0]
     const newStructure = { node,
-                           structureInfo: structure[node],
+                           structureInfo: info,
                            startPos: this.props.data.seqCoords[node].startPos,
                            mouseoverLabel: [],
                            trueAtomColor: {},
