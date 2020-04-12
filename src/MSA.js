@@ -14,7 +14,8 @@ class MSA extends Component {
                          props.view || {})
 
     this.state = extend ({ scrollTop: 0,
-                           alignScrollLeft: 0 },
+                           alignScrollLeft: 0,
+                           hoverColumn: null },
                          { view });
 
     this.rowsRef = React.createRef()
@@ -37,6 +38,8 @@ class MSA extends Component {
   collapseAnimationFrames() { return 10 }
   collapseAnimationDuration() { return 200 }
   collapseAnimationMaxFrameSkip() { return 8 }
+
+  mouseoverLabelDelay() { return 100 }
 
   resetView() {
     this.setState ({ view: this.initialView() })
@@ -154,7 +157,6 @@ class MSA extends Component {
         <div className="MSA-tree-alignment"
       ref={this.msaRef}
       onMouseDown={this.handleMouseDown.bind(this)}
-      onMouseLeave={()=>this.structRef.current.removeLabelFromStructuresOnMouseout()}
       style={{ width: this.props.config.containerWidth,
                height: treeLayout.treeAlignHeight }}>
 
@@ -199,8 +201,10 @@ class MSA extends Component {
       handleAlignCharClick={this.handleAlignCharClick.bind(this)}
       handleAlignCharMouseOver={this.handleAlignCharMouseOver.bind(this)}
       handleAlignCharMouseOut={this.handleAlignCharMouseOut.bind(this)}
+      handleMouseLeave={()=>this.delayedSetHoverColumn(null)}
       scrollLeft={this.state.alignScrollLeft}
       scrollTop={this.state.scrollTop}
+      hoverColumn={this.state.hoverColumn}
         />
         </div>
 
@@ -211,6 +215,8 @@ class MSA extends Component {
       structures={this.state.view.structure.openStructures}
       updateStructure={this.updateStructure.bind(this)}
       handleCloseStructure={this.handleCloseStructure.bind(this)}
+      handleMouseoverResidue={this.handleMouseoverStructureResidue.bind(this)}
+      setTimer={this.setTimer.bind(this)}
         />
 
       </div>
@@ -384,16 +390,46 @@ class MSA extends Component {
 
   handleAlignCharMouseOver (coords) {
     if (!this.panning && !this.scrolling) {
-      this.structRef.current.addLabelToStructuresOnMouseover (coords)
+      this.delayedSetHoverColumn (coords.column)
 //      console.warn('mouseover',coords)
     }
   }
 
   handleAlignCharMouseOut (coords) {
     if (!this.panning && !this.scrolling) {
-      this.structRef.current.removeLabelFromStructuresOnMouseout()
 //      console.warn('mouseout',coords)
     }
+  }
+
+  delayedSetHoverColumn (column) {
+    this.setMouseoverTimer (() => {
+      this.setHoverColumn (column)
+    })
+  }
+
+  setMouseoverTimer (callback) {
+    this.setTimer ('mouseover', this.mouseoverLabelDelay(), () => window.requestAnimationFrame (callback))
+  }
+
+  setHoverColumn (column) {
+    this.setState ({ hoverColumn: column })
+    if (column === null)
+      this.structRef.current.removeLabelFromStructuresOnMouseout()
+    else
+      this.structRef.current.addLabelToStructuresOnMouseover (column)
+  }
+
+  handleMouseoverStructureResidue (structure, chain, pdbSeqPos) {
+    this.setMouseoverTimer (() => {
+      const seqPosToCol = this.props.alignIndex.seqPosToAlignCol[structure.node]
+      const chainInfo = structure.structureInfo.chains.find ((c) => c.chain === chain)
+      if (seqPosToCol && chainInfo && pdbSeqPos >= chainInfo.startPos && pdbSeqPos <= chainInfo.endPos) {
+        const seqPos = pdbSeqPos - chainInfo.startPos
+        const column = seqPosToCol[seqPos]
+        this.setHoverColumn (column)
+      } else
+        this.setHoverColumn (null)
+    })
   }
   
   handleMouseLeave() {

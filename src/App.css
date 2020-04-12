@@ -83,8 +83,19 @@
     cursor: move;
 }
 
-.MSA-alignment-rows-back {
+.MSA-alignment-column-cursor {
+    position: absolute;
     z-index: 1;
+    border-style: solid;
+    border-width: 1px;
+    border-color: black;
+    background-color: black;
+    opacity: .1;
+    pointer-events: none;
+}
+
+.MSA-alignment-rows-back {
+    z-index: 2;
 }
 
 .MSA-alignment-canvas {

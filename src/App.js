@@ -89,14 +89,14 @@ class App extends Component {
       const reader = new FileReader()
       reader.onload = (e) => {
         const text = e.target.result
-        this.addDatasets (text)
+        this.addDatasets (text, true)
         resolve()
       }
       reader.readAsText (file)
     })
   }
 
-  addDatasets (text) {
+  addDatasets (text, autoselect) {
     const newAlignmentName = (n) => "Alignment " + (this.state.datasets.length + (n || 0) + 1);
     let datasets = this.state.datasets
     if (this.sniffStockholmRegex.test (text)) {
@@ -119,7 +119,10 @@ class App extends Component {
     }
     if (datasets.length > this.state.datasets.length) {
       const firstDataset = datasets[this.state.datasets.length]
-      this.setDataset (firstDataset, { datasets })
+      if (autoselect)
+        this.setDataset (firstDataset, { datasets })
+      else
+        this.setState ({ datasets })
       if (this.msaRef.current)
         this.msaRef.current.resetView()
     }
@@ -310,14 +313,15 @@ class App extends Component {
 
   async initDataset() {
     if (this.props.stockholm)
-      this.addDatasets (this.props.stockholm)
+      this.addDatasets (this.props.stockholm, false)
     if (this.props.dataurl)
       await fetch(this.makeURL (this.props.dataurl))
       .then (async (res) => {
         if (res.ok)
-          this.addDatasets (await res.text())
+          this.addDatasets (await res.text(), false)
       })
-    this.setDataset (this.props.data || this.state.datasets[0])
+    if (this.props.data || this.state.datasets.length)
+      this.setDataset (this.props.data || this.state.datasets[0])
   }
   
   reconstructMissingNodes() {
@@ -487,7 +491,7 @@ class App extends Component {
       seqPosToAlignCol[node] = pos2col
     })
     const chars = Object.keys(isChar).sort()
-    return { alignColToSeqPos, rowDataAsArray, columns, chars }
+    return { alignColToSeqPos, seqPosToAlignCol, rowDataAsArray, columns, chars }
   }
 
   // helpers to recognize gap characters

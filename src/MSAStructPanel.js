@@ -1,4 +1,5 @@
 import React, { Component } from 'react';
+import { isArray } from 'lodash';
 import pv from 'bio-pv';
 
 import { Select, MenuItem, FormControlLabel, Checkbox } from '@material-ui/core';
@@ -45,7 +46,7 @@ class MSAStructPanel extends Component {
                control={<Checkbox
                         checked={this.state.config.showMouseoverLabel}
                         onChange={this.handleMouseoverLabelConfig.bind(this)}/>}
-               label="Show label on mouseover"
+               label="Show label on hover"
                />
 
                </div>
@@ -59,6 +60,7 @@ class MSAStructPanel extends Component {
                          setViewType={()=>this.setViewType(structure)}
                          updateStructure={(info) => this.props.updateStructure(structure,info)}
                          handleCloseStructure={this.props.handleCloseStructure}
+                         handleMouseoverResidue={(chain,pdbSeqPos)=>this.props.handleMouseoverResidue(structure,chain,pdbSeqPos)}
                          />)
                })}
                </div>
@@ -73,7 +75,6 @@ class MSAStructPanel extends Component {
     this.setState ({ config })
   }
   
-  mouseoverLabelDelay() { return 100 }
   redrawStructureDelay() { return 500 }
 
   setViewType (structure, viewMode, colorScheme) {
@@ -103,55 +104,51 @@ class MSAStructPanel extends Component {
     this.props.structures.forEach ((s) => this.setViewType (s, undefined, colorScheme))
   }
   
-  addLabelToStructuresOnMouseover (coords) {
-    this.setTimer ('mouseover', this.mouseoverLabelDelay(), () => {
-      const labelConfig = this.state.config.label || { font: 'sans-serif',
-                                                       fontSize : 12,
-                                                       fontColor: '#f62',
-                                                       fillStyle: 'white',
-                                                       backgroundAlpha : 0.4 }
-      const atomHighlightColor = this.state.config.atomHighlightColor || 'red'
-      this.props.structures.forEach ((s) => {
-        if (coords.c && !coords.isGap && s.viewer) {
-          const colToSeqPos = this.props.alignIndex.alignColToSeqPos[s.node]
-          if (colToSeqPos) {
-            const seqPos = colToSeqPos[coords.column]
-            this.removeMouseoverLabels (s)
-            s.structureInfo.chains.forEach ((chainInfo) => {
-              const pdbSeqPos = seqPos + chainInfo.startPos
-              if (!chainInfo.endPos || pdbSeqPos <= chainInfo.endPos) {
-                const pdbChain = chainInfo.chain
-                const residues = s.pdb.residueSelect ((res) => {
-                  return res.num() === pdbSeqPos
-                    && (typeof(pdbChain) === 'undefined' || res.chain().name() === pdbChain)
-                })
-                if (residues) {
-                  residues.eachResidue ((res) => {
-                    const label = 'mouseover' + (s.mouseoverLabel.length + 1)
-                    if (this.state.config.showMouseoverLabel)
-                      s.viewer.label (label, res.qualifiedName(), res.centralAtom().pos(), labelConfig)
-                    res.atoms().forEach ((atom) => {
-                      if (!s.trueAtomColor[atom.index()]) {
-                        const atomColor = [0, 0, 0, 0]
-                        s.geometry.getColorForAtom (atom, atomColor)
-                        s.trueAtomColor[atom.index()] = atomColor
-                      }
-                    })
-                    this.setColorForAtoms (s.geometry, res.atoms(), atomHighlightColor)
-                    s.mouseoverLabel.push ({ label, res })
+  addLabelToStructuresOnMouseover (column) {
+    const labelConfig = this.state.config.label || { font: 'sans-serif',
+                                                     fontSize : 12,
+                                                     fontColor: '#f62',
+                                                     fillStyle: 'white',
+                                                     backgroundAlpha : 0.4 }
+    const atomHighlightColor = this.state.config.atomHighlightColor || 'red'
+    this.props.structures.forEach ((s) => {
+      const colToSeqPos = this.props.alignIndex.alignColToSeqPos[s.node]
+      if (colToSeqPos) {
+        const seqPos = colToSeqPos[column]
+        this.removeMouseoverLabels (s)
+        if (!isArray (s.structureInfo))
+          s.structureInfo.chains.forEach ((chainInfo) => {
+            const pdbSeqPos = seqPos + chainInfo.startPos
+            if (!chainInfo.endPos || pdbSeqPos <= chainInfo.endPos) {
+              const pdbChain = chainInfo.chain
+              const residues = s.pdb.residueSelect ((res) => {
+                return res.num() === pdbSeqPos
+                  && (typeof(pdbChain) === 'undefined' || res.chain().name() === pdbChain)
+              })
+              if (residues) {
+                residues.eachResidue ((res) => {
+                  const label = 'mouseover' + (s.mouseoverLabel.length + 1)
+                  if (this.state.config.showMouseoverLabel)
+                    s.viewer.label (label, res.qualifiedName(), res.centralAtom().pos(), labelConfig)
+                  res.atoms().forEach ((atom) => {
+                    if (!s.trueAtomColor[atom.index()]) {
+                      const atomColor = [0, 0, 0, 0]
+                      s.geometry.getColorForAtom (atom, atomColor)
+                      s.trueAtomColor[atom.index()] = atomColor
+                    }
                   })
-                }
+                  this.setColorForAtoms (s.geometry, res.atoms(), atomHighlightColor)
+                  s.mouseoverLabel.push ({ label, res })
+                })
               }
-            })
-          }
-        }
-      })
-      this.requestRedrawStructures()
+            }
+          })
+      }
     })
+    this.requestRedrawStructures()
   }
 
   removeLabelFromStructuresOnMouseout() {
-    this.clearTimer ('mouseover')
     this.props.structures.forEach ((s) => {
       this.removeMouseoverLabels (s)
     })
@@ -181,27 +178,9 @@ class MSAStructPanel extends Component {
 
   // delayed request to redraw structure
   requestRedrawStructures() {
-    this.setTimer ('redraw', this.redrawStructureDelay(), () => {
+    this.props.setTimer ('redraw', this.redrawStructureDelay(), () => {
       this.props.structures.filter ((s) => s.viewer).forEach ((s) => s.viewer.requestRedraw())
     })
-  }
-
-  // set generic timer
-  setTimer (name, delay, callback) {
-    this.timer = this.timer || {}
-    this.clearTimer (this, name)
-    this.timer[name] = window.setTimeout (() => {
-      delete this.timer[name]
-      callback()
-    }, delay)
-  }
-
-  // clear generic timer
-  clearTimer (name) {
-    if (this.timer && this.timer[name]) {
-      window.clearTimeout (this.timer[name])
-      delete this.timer[name]
-    }
   }
 }
 
