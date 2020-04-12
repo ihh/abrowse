@@ -113,7 +113,12 @@ class MSAStruct extends Component {
           if (picked) {
             const target = picked.target(), residue = target.residue(), seqPos = residue.num(), chain = residue.chain().name()
             this.props.handleMouseoverResidue (chain, seqPos)
-          }
+          } else
+            this.props.handleMouseoverResidue (null, null)
+        })
+
+        this.pvDivRef.current.addEventListener ('mouseleave', (evt) => {
+          this.props.handleMouseoverResidue (null, null)
         })
       })
     }
