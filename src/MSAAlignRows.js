@@ -17,9 +17,6 @@ class MSAAlignRows extends Component {
     return (<div className="MSA-alignment-rows"
             ref={this.rowsDivRef}
             onClick={this.handleClick.bind(this)}
-            onMouseMove={this.handleMouseMove.bind(this)}
-            onMouseLeave={this.handleMouseLeave.bind(this)}
-            onMouseDown={this.handleMouseDown.bind(this)}
             onScroll={this.handleScroll.bind(this)}>
 
             <MSAAlignCanvas
@@ -44,7 +41,11 @@ class MSAAlignRows extends Component {
 
             <div className="MSA-alignment-rows-back"
             style={{ width: alignWidth,
-                     height: treeHeight }} />
+                     height: treeHeight }}
+            onMouseMove={this.handleMouseMove.bind(this)}
+            onMouseLeave={this.handleMouseLeave.bind(this)}
+            onMouseDown={this.handleMouseDown.bind(this)}
+            />
 
             </div>)
   }
