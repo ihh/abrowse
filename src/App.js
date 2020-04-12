@@ -28,8 +28,7 @@ class App extends Component {
     const treeStrokeWidth = 1
     const nodeHandleStrokeStyle = branchStrokeStyle
     const availableTreeWidth = treeWidth - nodeHandleRadius - 2*treeStrokeWidth
-    const scrollbarHeight = 20  // hack, could be platform-dependent, a bit fragile...
-    const computedTreeConfig = { treeWidth, availableTreeWidth, genericRowHeight, branchStrokeStyle, nodeHandleStrokeStyle, nodeHandleRadius, nodeHandleClickRadius, nodeHandleFillStyle, collapsedNodeHandleFillStyle, rowConnectorDash, treeStrokeWidth, scrollbarHeight }
+    const computedTreeConfig = { treeWidth, availableTreeWidth, genericRowHeight, branchStrokeStyle, nodeHandleStrokeStyle, nodeHandleRadius, nodeHandleClickRadius, nodeHandleFillStyle, collapsedNodeHandleFillStyle, rowConnectorDash, treeStrokeWidth }
 
     // font configuration
     const charFontName = 'Menlo,monospace'

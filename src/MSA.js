@@ -75,7 +75,7 @@ class MSA extends Component {
   layoutTree (computedView) {
     const { computedTreeConfig, treeIndex } = this.props
     const { nodeVisible, nodeScale } = computedView
-    const { genericRowHeight, nodeHandleRadius, treeStrokeWidth, availableTreeWidth, scrollbarHeight } = computedTreeConfig
+    const { genericRowHeight, nodeHandleRadius, treeStrokeWidth, availableTreeWidth } = computedTreeConfig
     let nx = {}, ny = {}, computedRowScale = [], nodeHeight = {}, rowHeight = [], treeHeight = 0
     const rowY = treeIndex.nodes.map ((node) => {
       const scale = typeof(nodeScale[node]) !== 'undefined' ? nodeScale[node] : 1
@@ -89,7 +89,6 @@ class MSA extends Component {
       treeHeight += rh
       return y
     })
-    treeHeight += scrollbarHeight
     return { nx, ny, computedRowScale, nodeHeight, rowHeight, rowY, treeHeight, computedView }
   }
 
