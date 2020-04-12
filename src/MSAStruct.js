@@ -68,15 +68,18 @@ class MSAStruct extends Component {
   pdbUrlSuffix() { return '.pdb' }
   
   componentDidMount() {
-    if (!isArray (this.props.structure.structureInfo))
-      this.loadStructure()
+    this.updatePv()
   }
 
   componentDidUpdate() {
+    this.updatePv()
+  }
+
+  updatePv() {
     if (!isArray (this.props.structure.structureInfo))
       this.loadStructure()
   }
-
+  
   handleSelectStructure (evt) {
     this.props.updateStructure ({ structureInfo: evt.target.value })
   }
@@ -102,6 +105,16 @@ class MSAStruct extends Component {
         this.props.setViewType()
         viewer.centerOn(pdb)
         viewer.autoZoom()
+
+        this.pvDivRef.current.addEventListener ('mousemove', (evt) => {
+          const rect = viewer.boundingClientRect()
+          const picked = viewer.pick ({ x : evt.clientX - rect.left,
+                                        y : evt.clientY - rect.top })
+          if (picked) {
+            const target = picked.target(), residue = target.residue(), seqPos = residue.num(), chain = residue.chain().name()
+            this.props.handleMouseoverResidue (chain, seqPos)
+          }
+        })
       })
     }
   }

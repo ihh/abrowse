@@ -18,8 +18,9 @@ class MSAAlignRows extends Component {
             ref={this.rowsDivRef}
             onClick={this.handleClick.bind(this)}
             onMouseMove={this.handleMouseMove.bind(this)}
-            onScroll={this.handleScroll.bind(this)}
-            onMouseDown={this.handleMouseDown.bind(this)}>
+            onMouseLeave={this.handleMouseLeave.bind(this)}
+            onMouseDown={this.handleMouseDown.bind(this)}
+            onScroll={this.handleScroll.bind(this)}>
 
             <MSAAlignCanvas
             ref={this.alignCanvasRef}
@@ -32,6 +33,14 @@ class MSAAlignRows extends Component {
             scrollLeft={this.props.scrollLeft}
             scrollTop={this.props.scrollTop}
             />
+
+            {this.props.hoverColumn !== null
+             ? (<div className="MSA-alignment-column-cursor"
+                style={{ left: this.props.alignLayout.colX[this.props.hoverColumn],
+                         top: 0,
+                         width: this.props.alignLayout.colWidth[this.props.hoverColumn],
+                         height: this.props.treeLayout.treeHeight }}/>)
+             : ''}
 
             <div className="MSA-alignment-rows-back"
             style={{ width: alignWidth,
@@ -79,6 +88,10 @@ class MSAAlignRows extends Component {
       this.props.handleAlignCharMouseOver (coords)
       this.lastCoords = coords
     }
+  }
+
+  handleMouseLeave (evt) {
+    this.props.handleMouseLeave (evt)
   }
 
   handleMouseDown (evt) {
