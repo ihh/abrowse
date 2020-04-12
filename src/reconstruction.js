@@ -2,10 +2,12 @@ import PhylogeneticLikelihood from 'phylogenetic-likelihood';
 
 export const getAncestralReconstruction = async (data) => {
   const { branches, rowData, id } = data
+  let { gapChar } = data
+  gapChar = gapChar || '-'
   let ancestralRowData = {}
   const alphSize = 20  // assume for ancestral reconstruction purposes these are protein sequences; if not we'll need to pass a different model into getNodePostProfiles
   const maxEntropy = Math.log(alphSize) / Math.log(2)
-  const gapChar = '-', deletionRate = .001
+  const deletionRate = .001
   const model = PhylogeneticLikelihood.models.makeGappedModel ({ model: PhylogeneticLikelihood.models[PhylogeneticLikelihood.defaultModel],
                                                                  deletionRate,
                                                                  gapChar })

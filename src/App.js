@@ -9,7 +9,7 @@ import { getAncestralReconstruction } from './reconstruction';
 import getAncestralReconstructionWorker from 'workerize-loader!./reconstruction';
 
 import Stockholm from 'stockholm-js';
-import Newick from 'newick-js';
+import { Newick } from 'newick';
 import JukesCantor from 'jukes-cantor';
 import RapidNeighborJoining from 'neighbor-joining';
 
@@ -187,7 +187,8 @@ class App extends Component {
         throw new Error ("no sequence data")
       // If a Newick-format tree was specified somehow (as a separate data item, or in the Stockholm alignment) then parse it
       if (data.newick || data.newickjs) {
-        const newickTree = data.newickjs || Newick.parse (data.newick)
+        const NewickParser = new Newick()
+        const newickTree = data.newickjs = data.newickjs || NewickParser.parse (data.newick)
         let nodes = 0
         const getName = (obj) => (obj.name = obj.name || ('node' + (++nodes)))
         data.branches = []
