@@ -1,6 +1,10 @@
 {
   "name": "abrowse",
-  "version": "0.1.0",
+  "version": "0.1.2",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ihh/abrowse.git"
+  },
   "dependencies": {
     "@material-ui/core": "^4.9.9",
     "@material-ui/icons": "^4.9.1",
@@ -40,6 +44,7 @@
     ]
   },
   "devDependencies": {
+    "babel-cli": "^6.26.0",
     "workerize-loader": "^1.1.0"
   }
 }
