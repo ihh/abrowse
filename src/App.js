@@ -1,6 +1,7 @@
 import React, { Component } from 'react';
 import { Select, MenuItem } from '@material-ui/core';
 import { extend, isArray } from 'lodash';
+import queryString from 'query-string';
 import colorSchemes from './colorSchemes'
 import './App.css';
 
@@ -69,8 +70,20 @@ class App extends Component {
   handleSelectDataset (evt) {
     const name = evt.target.value
     if (name) {
-      this.setDataset (this.state.datasets.find ((ds) => ds.name === name))
+      const nAlign = this.state.datasets.findIndex ((ds) => ds.name === name)
+      const data = this.state.datasets[nAlign]
+      this.setDataset (data)
       this.msaRef.current.resetView()
+      if (nAlign < this.nDatasetsInitial) {  // don't URL-encode dataset if it's one we added after loading
+        let newSearch = queryString.parse (window.location.search)
+        delete newSearch[this.alignIdQueryParam]
+        delete newSearch[this.nAlignQueryParam]
+        if (data.id)
+          newSearch[this.alignIdQueryParam] = data.id
+        else
+          newSearch[this.nAlignQueryParam] = nAlign
+        window.location.search = queryString.stringify (newSearch)
+      }
     } else
       this.inputRef.current.click()
   }
@@ -107,7 +120,8 @@ class App extends Component {
             name = stockholmjs.gf[tag][0]
         })
         name = name || newAlignmentName(n)
-        return { stockholmjs, name }
+        const id = ['AC','ID'].reduce ((id, tag) => id || (stockholmjs.gf[tag] && stockholmjs.gf[tag][0]), undefined)
+        return { stockholmjs, name, id }
       }))
     } else {
       try {
@@ -313,6 +327,7 @@ class App extends Component {
     this.reconstructMissingNodes()
   }
 
+  // initDataset is called once, from componentDidMount
   async initDataset() {
     if (this.props.stockholm)
       this.addDatasets (this.props.stockholm, false)
@@ -322,9 +337,21 @@ class App extends Component {
         if (res.ok)
           this.addDatasets (await res.text(), false)
       })
+    this.nDatasetsInitial = this.state.datasets && this.state.datasets.length
     if (this.props.data || this.state.datasets.length)
-      this.setDataset (this.props.data || this.state.datasets[0])
+      this.setDataset (this.props.data || this.getInitialDataset())
   }
+
+  getInitialDataset() {
+    const params = queryString.parse(window.location.search)
+    const id = params[this.alignIdQueryParam], n = params[this.nAlignQueryParam]
+    if (id)
+      return this.state.datasets.find ((data) => data.id === id)
+    return this.state.datasets[n || 0]
+  }
+  
+  get nAlignQueryParam() { return 'alignnum' }
+  get alignIdQueryParam() { return 'alignid' }
   
   reconstructMissingNodes() {
     // check if any nodes are missing; if so, do ancestral sequence reconstruction
