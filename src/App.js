@@ -48,6 +48,13 @@ class App extends Component {
     this.divRef = React.createRef()
     this.inputRef = React.createRef()
     this.msaRef = React.createRef()
+
+    window.onpopstate = (event) => {
+      if (event && event.state && event.state.data)
+        this.setDataset (event.state.data)
+      else
+        window.location.reload()
+    }
   }
 
   handleDragEnter (evt) {
@@ -75,14 +82,14 @@ class App extends Component {
       this.setDataset (data)
       this.msaRef.current.resetView()
       if (nAlign < this.nDatasetsInitial) {  // don't URL-encode dataset if it's one we added after loading
-        let newSearch = queryString.parse (window.location.search)
-        delete newSearch[this.alignIdQueryParam]
-        delete newSearch[this.nAlignQueryParam]
+        let newState = queryString.parse (window.location.search)
+        delete newState[this.alignIdQueryParam]
+        delete newState[this.nAlignQueryParam]
         if (data.id)
-          newSearch[this.alignIdQueryParam] = data.id
+          newState[this.alignIdQueryParam] = data.id
         else
-          newSearch[this.nAlignQueryParam] = nAlign
-        window.location.search = queryString.stringify (newSearch)
+          newState[this.nAlignQueryParam] = nAlign
+        window.history.pushState ({ data }, document.title, '?' + queryString.stringify (newState))
       }
     } else
       this.inputRef.current.click()
@@ -290,7 +297,9 @@ class App extends Component {
           if (match) {
             const pdb = match[1].toLowerCase(), chain = match[2], startPos = parseInt (match[3]), endPos = parseInt (match[4])
             const pdbLen = endPos - startPos
-            if (seqLen === pdbLen) {  // check structure matches sequence
+            const fullLengthMatch = seqLen === pdbLen
+            const sequenceOverlapsStructure = seqCoords.startPos <= endPos && seqCoords.endPos >= startPos
+            if (sequenceOverlapsStructure && (fullLengthMatch || !config.noPartialStructures)) {  // check structure matches sequence
               structure[node] = structure[node] || []
               const pdbIndex = structure[node].findIndex ((s) => s.pdb === pdb)
               let pdbStruct
@@ -304,7 +313,10 @@ class App extends Component {
                                        startPos,
                                        endPos })
             } else
-              console.warn ('ignoring structure ' + pdb + ' (' + startPos + '...' + endPos + ') since it is not a full-length match to ' + node + ' (' + pdbLen + '!=' + seqLen + ')')
+              console.warn ('ignoring structure ' + pdb + ' (' + startPos + '...' + endPos + ') since it '
+                            + (fullLengthMatch
+                               ? ('does not overlap with ' + node)
+                               : ('is not a full-length match to ' + node + ' (' + pdbLen + '!=' + seqLen + ')')))
           }
         })
       })

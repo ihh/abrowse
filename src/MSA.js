@@ -210,6 +210,7 @@ class MSA extends Component {
         <MSAStructPanel
       ref={this.structRef}
       initConfig={this.props.config.structure}
+      seqCoords={this.props.data.seqCoords}
       alignIndex={this.props.alignIndex}
       structures={this.state.view.structure.openStructures}
       updateStructure={this.updateStructure.bind(this)}
