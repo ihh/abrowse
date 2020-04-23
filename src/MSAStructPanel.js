@@ -113,13 +113,15 @@ class MSAStructPanel extends Component {
     const atomHighlightColor = this.state.config.atomHighlightColor || 'red'
     this.props.structures.forEach ((s) => {
       const colToSeqPos = this.props.alignIndex.alignColToSeqPos[s.node]
+      const seqCoords = this.props.seqCoords[s.node] || { startPos: 1 }
       if (colToSeqPos) {
         const seqPos = colToSeqPos[column]
         this.removeMouseoverLabels (s)
         if (!isArray (s.structureInfo))
           s.structureInfo.chains.forEach ((chainInfo) => {
-            const pdbSeqPos = seqPos + chainInfo.startPos
-            if (!chainInfo.endPos || pdbSeqPos <= chainInfo.endPos) {
+            const pdbSeqPos = seqPos + seqCoords.startPos
+            if ((!chainInfo.startPos || pdbSeqPos >= chainInfo.startPos)
+                && (!chainInfo.endPos || pdbSeqPos <= chainInfo.endPos)) {
               const pdbChain = chainInfo.chain
               const residues = s.pdb.residueSelect ((res) => {
                 return res.num() === pdbSeqPos
