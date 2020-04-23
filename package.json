@@ -18,6 +18,7 @@
     "neighbor-joining": "^1.0.4",
     "newick": "^2.0.0",
     "phylogenetic-likelihood": "^1.0.5",
+    "query-string": "^6.12.1",
     "react": "^16.13.1",
     "react-dom": "^16.13.1",
     "react-scripts": "3.4.1",
