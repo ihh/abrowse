@@ -2,6 +2,7 @@
 
 ABrowse is a multiple sequence alignment browser with integrated phylogeny and protein structure views,
 created by the [JBrowse](https://jbrowse.org/) team.
+A demo using the Pfam coronavirus protein domain collection is available [here](https://ihh.github.io/abrowse/).
 
 This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
 
