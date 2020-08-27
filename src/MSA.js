@@ -77,6 +77,11 @@ class MSA extends Component {
     const { nodeVisible, nodeScale } = computedView
     const { genericRowHeight, nodeHandleRadius, treeStrokeWidth, availableTreeWidth } = computedTreeConfig
     let nx = {}, ny = {}, computedRowScale = [], nodeHeight = {}, rowHeight = [], treeHeight = 0
+    // PERFORMANCE NOTE: the following is an O(N) scan in the number of tree nodes N, performed in every animation frame
+    // The purpose is to figure out the visibility and (if visible) scaled height of every row, for collapse/open transitions.
+    // This is then used (by MSATree) to determine which nodes are in the visible region, and should be drawn.
+    // In principle this could be optimized by taking hints from the view: we could start from a node that we know is in the visible region,
+    // and explore outwards from there.
     const rowY = treeIndex.nodes.map ((node) => {
       const scale = typeof(nodeScale[node]) !== 'undefined' ? nodeScale[node] : 1
       const rh = scale * (nodeVisible[node] ? genericRowHeight : 0)
@@ -108,6 +113,9 @@ class MSA extends Component {
     const charHeight = genericRowHeight
 
     let nextColX = 0, colX = [], colWidth = [], computedColScale = []
+    // PERFORMANCE NOTE: the following is an O(L) scan in the number of alignment columns L, performed in every animation frame
+    // As with the O(N) scan in layoutTree(), this could be optimized by taking hints from the view,
+    // i.e. starting from a column that is known to be in the visible region, and exploring outwards from there.
     for (let col = 0; col < alignIndex.columns; ++col) {
       colX.push (nextColX)
       if (computedView.columnVisible[col]) {
@@ -274,6 +282,9 @@ class MSA extends Component {
     this.setState ({ view })
   }
   
+  // This function updates internal state when a node is opened/collapsed & schedules the animation
+  // PERFORMANCE NOTE: at the moment, the layout is recomputed in every animation frame
+  // Some improvement should be possible by moving some of the invariant calculations out of this loop, precomputing and passing them in.
   handleNodeClick (node) {
     if (this.scrolling) {
       this.scrolling = false
@@ -282,6 +293,15 @@ class MSA extends Component {
     if (this.state.disableTreeEvents)
       return
 
+    // HACK/CODE STINK: Currently there are some slightly hacky things about this animation.
+    // The "forceDisplayNode" and "collapsed" objects have the following combined effect (for internal nodes):
+    // If collapsed[node] is truthy, then the alignment row for that node will be rendered.
+    // If collapsed[node]===undefined and forceDisplayNode[node]===true, then the node's open->collapse transition is being animated, and the node handle will be rendered as collapsed.
+    // If collapsed[node] is falsey and forceDisplayNode[node] is falsey, then the node handle will be rendered as collapsed.
+    // This might be better handled by replacing the two objects with a single combined state (OPEN, COLLAPSED, COLLAPSING, OPENING)
+    // Part of the implementation goal has been to keep the object sparse so that the default state is OPEN and the objects can start off being empty.
+    
+    // First compute the current alignment layout (i.e. the initial state before the expand/collapse)
     const { treeIndex, alignIndex } = this.props
     const computedView = this.getComputedView()
     const { collapsed, nodeScale, columnScale, forceDisplayNode, columnVisible } = computedView
@@ -292,6 +312,10 @@ class MSA extends Component {
     const collapseAnimationFrames = this.collapseAnimationFrames()
     let framesLeft = collapseAnimationFrames
 
+    // Now compute the final alignment state and layout
+    // This also includes figuring out which columns are visible before AND after the animation - so that we can keep the view centered around those columns
+    // As noted in the comments for layoutAlignment(), a possible performance optimization would be to do a lazy layout, starting with a column known to be in the view, and stopping when offscreen.
+    // This might necessitate maintaining some internal state about which column is currently being used as the "origin" for layout purposes.
     const wasCollapsed = collapsed[node], finalCollapsed = extend ({}, collapsed)
     if (wasCollapsed) {
       collapsed[node] = false  // when collapsed[node]=false (vs undefined), it's rendered by renderTree() as a collapsed node, but its descendants are still visible. A bit of a hack...
@@ -309,10 +333,14 @@ class MSA extends Component {
       if (columnVisible[col] && finalComputedView.columnVisible[col] && colX >= left && colX + colWidth < right)
         persistingVisibleColumns.push (col)
     }
+    // Compute the current centroid of the visible-before-and-after columns
+    // Throughout the animation, we keep computing this and dynamically adjust alignScrollLeft so that it stays at the centroid of the current view
+    // This ensures that the currently visible alignment region does not shift out of view because columns way offscreen to the left have disappeared or appeared.
     const centroidMinusScroll = this.centroidOfColumns (persistingVisibleColumns, alignLayout) - this.state.alignScrollLeft
 
     let lastFrameTime = Date.now()
     const expectedTimeBetweenFrames = this.collapseAnimationDuration() / collapseAnimationFrames
+    // drawAnimationFrame is the closure used for the animation transition
     const drawAnimationFrame = () => {
       let disableTreeEvents, animating, newCollapsed = collapsed
       if (framesLeft) {
@@ -322,7 +350,7 @@ class MSA extends Component {
         newlyHiddenColumns.forEach ((col) => columnScale[col] = scale)
         newlyVisibleColumns.forEach ((col) => columnScale[col] = 1 - scale)
         forceDisplayNode[node] = true
-        disableTreeEvents = true
+        disableTreeEvents = true  // disable further tree events while the animated transition is ongoing
         animating = true
       } else {
         treeIndex.descendants[node].forEach ((desc) => { delete nodeScale[desc] })
@@ -341,6 +369,7 @@ class MSA extends Component {
         this.setState ({ alignScrollLeft, view })
         
         if (framesLeft) {
+          // Note the use of collapseAnimationMaxFrameSkip to guarantee that the user sees at least one frame of the animation transition
           const currentTime = Date.now(),
                 timeSinceLastFrame = currentTime - lastFrameTime,
                 timeToNextFrame = Math.max (0, expectedTimeBetweenFrames - timeSinceLastFrame),
