@@ -5,6 +5,7 @@
     "type": "git",
     "url": "https://github.com/ihh/abrowse.git"
   },
+  "homepage": "http://vega.biowiki.org/aav_rep",
   "dependencies": {
     "@material-ui/core": "^4.9.9",
     "@material-ui/icons": "^4.9.1",

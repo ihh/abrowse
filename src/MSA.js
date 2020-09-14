@@ -415,7 +415,7 @@ class MSA extends Component {
 
   handleAlignCharClick (coords) {
     if (!this.panning && !this.scrolling) {
-//      console.warn('click',coords)
+      console.warn('click',coords)
     }
     this.panning = this.scrolling = false
   }

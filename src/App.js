@@ -471,6 +471,7 @@ class App extends Component {
       branchLength[child] = len
     })
     let nodes = [], seenNode = {}, descendants = {}, distFromRoot = {}, maxDistFromRoot = 0
+    const nodeLengthPad = 10
     const addNode = (node) => {
       if (!node)
         throw new Error ("All nodes must be named")
@@ -480,7 +481,7 @@ class App extends Component {
       nodes.push (node)
     }
     const addSubtree = (node, parent) => {
-      distFromRoot[node] = (typeof(parent) !== 'undefined' ? distFromRoot[parent] : 0) + branchLength[node]
+      distFromRoot[node] = (typeof(parent) !== 'undefined' ? distFromRoot[parent] : 0) + branchLength[node] + nodeLengthPad
       maxDistFromRoot = Math.max (maxDistFromRoot, distFromRoot[node])
       const kids = children[node]
       let clade = []
@@ -516,7 +517,7 @@ class App extends Component {
     Object.keys(rowData).forEach ((node) => {
       const row = rowData[node]
       if (typeof(columns) !== 'undefined' && columns !== row.length)
-        console.error ("Inconsistent row lengths")
+        console.error ("Inconsistent row lengths: columns=" + columns + ", row.length=" + row.length)
       columns = row.length
       let pos2col = [], pos = 0
       const rowAsArray = this.rowAsArray (row)
